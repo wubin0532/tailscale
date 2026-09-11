@@ -1,85 +1,75 @@
-# luci-app-tailscale
+# tailscale-luci
 
-OpenWrt 的 Tailscale LuCI 管理界面，包含：
-
-- **tailscale**：Tailscale 合并二进制包（CLI + daemon 一体，支持 extra-small 构建与 UPX 压缩，见
-  [Tailscale 官方文档](https://tailscale.com/docs/how-to/set-up-small-tailscale)）
-- **luci-app-tailscale**：LuCI 界面（服务状态 / 全局设置）+ procd 服务 + **防火墙自动设置**
+OpenWrt 的 Tailscale 一体化管理包：合并二进制 + LuCI 管理界面 + 防火墙自动设置，单 ipk 安装。
 
 ## 功能
 
-### 服务状态页
-- 启用/禁用服务
-- 运行状态、当前节点、Tailscale IP、已绑定用户
-- 未登录时显示登录链接；已登录可一键「注销登录并解除绑定」
+- **服务状态**：仪表盘式状态页（运行状态、当前节点、Tailscale IP、已绑定用户、公开网段），二维码扫码登录，节点密钥过期提醒，连接质量检测（netcheck）
+- **节点列表**：tailnet 内全部设备（在线状态、直连/中继、最后在线时间、逐节点 ping 检测）
+- **运行日志**：实时滚动查看 tailscaled 日志
+- **全局设置**：允许组网、设备名称、公开网段（一键填入 LAN 网段）、认证密钥、Headscale 自建控制服务器、Tailscale SSH
+- **出口节点**：作为出口节点供他人使用 / 使用其他出口节点
+- **防火墙自动设置**：自动创建 tailscale 防火墙 zone（fw4）+ LAN 双向转发 + 入站端口白名单，幂等且只清理自身创建的规则
+- **中英双语**：界面语言随 LuCI 系统语言自动切换
+- **自定义深色主题**：Mesh 控制台风格 UI
 
-### 全局设置页
-- 允许组网（`--accept-routes`）
-- 设备名称（`--hostname`，留空使用系统主机名）
-- 公开网段（`--advertise-routes`，如 `192.168.199.0/24`）
-- 认证密钥（`--auth-key`，可选，免浏览器自动登录）
+## 安装
 
-### 防火墙自动设置
-开启后服务启动时自动执行（基于 fw4，需 OpenWrt 22.03+）：
-
-1. 创建 `tailscale` 防火墙区域（设备 `tailscale0`，可配置入站策略、NAT 伪装、MTU fix）
-2. 可选创建 `lan ↔ tailscale` 双向转发规则
-3. 自动写入 UCI 防火墙配置并 reload，重启不丢失
-
-规则带 `ts_auto=1` 标记：已存在同名 zone 时跳过（幂等），关闭功能或服务停止时仅移除本脚本创建的规则，不触碰用户手动配置。
-
-## 构建
-
-在 OpenWrt 源码树 / SDK 中：
+在 [Releases](https://github.com/wubin0532/tailscale/releases) 下载对应架构的单包：
 
 ```sh
-# 添加本 feed
+opkg install tailscale-luci_1.102.2-3_<架构>.ipk
+/etc/init.d/rpcd restart
+```
+
+| ipk 架构 | 适用 |
+|---|---|
+| aarch64_cortex-a53 | 64 位 ARM 路由器 |
+| arm_cortex-a7 | 32 位 ARM 路由器 |
+| mipsel_24kc | MT7621 等 mipsel 设备 |
+| x86_64 | x86 软路由 |
+
+若已安装官方 tailscale 包导致冲突：先 `opkg remove tailscale`（或加 `--force-overwrite`）。
+
+## 要求
+
+- OpenWrt 22.03+（fw4）
+- 二进制为合并二进制 extra-small 构建 + UPX 压缩（~6.6–8.2MB），RAM < 64MB 的设备请谨慎使用
+
+## 从源码构建
+
+### 方式一：OpenWrt SDK（交叉编译完整固件包）
+
+```sh
 echo "src-link tailscale_feed /path/to/this/repo" >> feeds.conf.default
 ./scripts/feeds update tailscale_feed
 ./scripts/feeds install -a -p tailscale_feed
-
-make menuconfig
-# Network -> VPN -> tailscale        （可选 EXTRA_SMALL / UPX 压缩）
-# LuCI -> Applications -> luci-app-tailscale
-
+make menuconfig   # Network -> VPN -> tailscale；LuCI -> Applications -> luci-app-tailscale
 make package/tailscale/compile V=s
 make package/luci-app-tailscale/compile V=s
 ```
 
-> 注意：本 feed 的 `tailscale` 包与官方 packages feed 同名，请只启用其一
-> （本 feed 优先，或 `./scripts/feeds uninstall tailscale` 官方版本后再装本 feed 版本）。
-> 本包不自带 init/config，由 `luci-app-tailscale` 提供。
+### 方式二：本机直编（无需 SDK）
 
-## 安装到路由器
+`build-ipk.sh` 直接用本机 Go 交叉编译二进制 + UPX 压缩 + 手工组装 ipk：
 
 ```sh
-scp bin/packages/<arch>/tailscale_feed/*.ipk root@router:/tmp/
-ssh root@router
-opkg install /tmp/tailscale_*.ipk /tmp/luci-app-tailscale_*.ipk
-/etc/init.d/rpcd restart
+./build-ipk.sh   # 产物在 dist/
 ```
-
-然后在 LuCI「服务 → Tailscale」中启用并登录。
 
 ## 目录结构
 
 ```
-tailscale/                        # 二进制包（combined binary，可选 UPX）
+tailscale/                        # SDK 用二进制包定义（Makefile/Config.in）
 luci-app-tailscale/
-├── htdocs/luci-static/resources/view/tailscale/
-│   ├── status.js                 # 服务状态页
-│   └── settings.js               # 全局设置 + 防火墙设置页
-├── po/zh_Hans/tailscale.po       # 中文翻译
+├── htdocs/luci-static/resources/
+│   ├── tailscale/style.css       # 设计系统（深色 mesh 主题）
+│   ├── tailscale/qrcode.min.js   # 二维码库（vendor）
+│   └── view/tailscale/           # status / peers / log / settings 视图
+├── po/zh_Hans/tailscale.po       # 中文翻译（英文为默认 msgid）
 └── root/
     ├── etc/config/tailscale      # UCI 配置
     ├── etc/init.d/tailscale      # procd 服务（含防火墙自动配置）
-    ├── usr/libexec/rpcd/tailscale  # rpcd 后端（get_status / get_log / logout）
-    ├── usr/share/luci/menu.d/luci-app-tailscale.json
-    └── usr/share/rpcd/acl.d/luci-app-tailscale.json
+    ├── usr/libexec/rpcd/tailscale  # rpcd 后端（status/log/netcheck/ping/logout）
+    └── usr/share/{luci/menu.d,rpcd/acl.d}/  # 菜单与权限注册
 ```
-
-## 要求
-
-- OpenWrt 22.03 / 23.05 / 24.10（fw4）
-- 架构需支持 Go（官方 tailscale 包的架构要求相同）
-- Flash 紧张时可开启 `TAILSCALE_EXTRA_SMALL`（默认开）与 `TAILSCALE_UPX`（需构建主机安装 upx）

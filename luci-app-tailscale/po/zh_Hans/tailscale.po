@@ -4,14 +4,23 @@ msgstr "Content-Type: text/plain; charset=UTF-8"
 msgid "Tailscale"
 msgstr "Tailscale"
 
-msgid "Tailscale connects your devices so you can securely access remote resources. For details, please visit "
+msgid "Tailscale connects your devices for easy access to remote resources. See "
 msgstr "Tailscale 连接您的设备，以便轻松访问远程资源。详情请查看 "
 
 msgid "Service Status"
 msgstr "服务状态"
 
-msgid "Enable"
-msgstr "启用"
+msgid "Peers"
+msgstr "节点列表"
+
+msgid "Logs"
+msgstr "运行日志"
+
+msgid "Global Settings"
+msgstr "全局设置"
+
+msgid "Enable service"
+msgstr "启用服务"
 
 msgid "Running"
 msgstr "Running"
@@ -19,19 +28,64 @@ msgstr "Running"
 msgid "Stopped"
 msgstr "已停止"
 
+msgid "Connected to tailnet"
+msgstr "已连接到 tailnet"
+
+msgid "Service is not running"
+msgstr "服务未运行"
+
 msgid "Current Node"
 msgstr "当前节点"
-
-msgid "Tailscale IP"
-msgstr "Tailscale IP"
 
 msgid "Bound User"
 msgstr "已绑定用户"
 
+msgid "Advertised Routes"
+msgstr "公开网段"
+
+msgid "Account & Connection"
+msgstr "账号与连接"
+
+msgid "Login state"
+msgstr "登录状态"
+
+msgid "Authorize this device with your tailnet account"
+msgstr "通过 tailnet 账号授权本设备"
+
+msgid "Connection quality"
+msgstr "连接质量"
+
+msgid "Check NAT type, DERP relay latency and IPv6 reachability"
+msgstr "检测 NAT 类型、DERP 中继延迟与 IPv6 连通性"
+
+msgid "Run netcheck"
+msgstr "开始检测"
+
+msgid "Checking..."
+msgstr "检测中..."
+
+msgid "Netcheck Result"
+msgstr "连接质量检测结果"
+
+msgid "No result"
+msgstr "无结果"
+
+msgid "Close"
+msgstr "关闭"
+
 msgid "Login"
 msgstr "登录"
 
-msgid "Logout and unbind"
+msgid "Login to Tailscale"
+msgstr "登录 Tailscale"
+
+msgid "Scan the QR code with your phone, or open the link below to authorize this device:"
+msgstr "用手机扫描二维码，或打开下方链接完成设备授权："
+
+msgid "Open login page"
+msgstr "打开登录页面"
+
+msgid "Logout & Unbind"
 msgstr "注销登录并解除绑定"
 
 msgid "This will log out of Tailscale and unbind the device from your account. Continue?"
@@ -46,8 +100,86 @@ msgstr "正在应用更改..."
 msgid "Failed to apply: %s"
 msgstr "应用失败：%s"
 
-msgid "Global Settings"
-msgstr "全局设置"
+msgid "Key expiring soon"
+msgstr "密钥即将过期"
+
+msgid "The node key expires today. Please re-authenticate to keep this device connected."
+msgstr "节点密钥今天到期。请重新登录授权，以保持设备连接。"
+
+msgid "The node key expires in %d days. Please re-authenticate to keep this device connected."
+msgstr "节点密钥将在 %d 天后到期。请重新登录授权，以保持设备连接。"
+
+msgid "All devices in your tailnet. Refresh automatically every 5 seconds."
+msgstr "tailnet 内的所有设备，每 5 秒自动刷新。"
+
+msgid "Online Devices"
+msgstr "在线设备"
+
+msgid "%d online / %d total"
+msgstr "在线 %d / 共 %d"
+
+msgid "Node"
+msgstr "节点"
+
+msgid "OS"
+msgstr "系统"
+
+msgid "Status"
+msgstr "状态"
+
+msgid "Connection"
+msgstr "连接方式"
+
+msgid "Last Seen"
+msgstr "最后在线"
+
+msgid "Online"
+msgstr "在线"
+
+msgid "Offline"
+msgstr "离线"
+
+msgid "Direct"
+msgstr "直连"
+
+msgid "Relay"
+msgstr "中继"
+
+msgid "now"
+msgstr "现在"
+
+msgid "%ds ago"
+msgstr "%d 秒前"
+
+msgid "%dm ago"
+msgstr "%d 分钟前"
+
+msgid "%dh ago"
+msgstr "%d 小时前"
+
+msgid "%dd ago"
+msgstr "%d 天前"
+
+msgid "Loading..."
+msgstr "加载中..."
+
+msgid "No peers found."
+msgstr "未发现其他节点。"
+
+msgid "Ping"
+msgstr "检测"
+
+msgid "timeout"
+msgstr "超时"
+
+msgid "Tailscale daemon logs, refreshed every 3 seconds."
+msgstr "Tailscale 守护进程日志，每 3 秒自动刷新。"
+
+msgid "Refresh"
+msgstr "刷新"
+
+msgid "No log entries."
+msgstr "暂无日志。"
 
 msgid "Accept routes"
 msgstr "允许组网"
@@ -67,11 +199,47 @@ msgstr "公开网段"
 msgid "Subnets allowed to be accessed through this node, e.g. 192.168.100.0/24."
 msgstr "允许被访问的网段，如 192.168.100.0/24"
 
+msgid "LAN subnet"
+msgstr "LAN 网段"
+
 msgid "Auth Key"
 msgstr "认证密钥"
 
 msgid "Optional. Use an auth key to log in automatically without browser interaction."
 msgstr "可选。使用认证密钥自动登录，无需浏览器交互。"
+
+msgid "Control server"
+msgstr "控制服务器"
+
+msgid "Leave empty for the official Tailscale control plane, or enter your Headscale server URL."
+msgstr "留空使用官方控制服务器，或填写自建 Headscale 服务器地址。"
+
+msgid "Tailscale SSH"
+msgstr "Tailscale SSH"
+
+msgid "Allow tailnet devices to SSH into this router via Tailscale authentication."
+msgstr "允许 tailnet 内设备通过 Tailscale 认证 SSH 登录本路由器。"
+
+msgid "Exit Node"
+msgstr "出口节点"
+
+msgid "Advertise as exit node"
+msgstr "作为出口节点"
+
+msgid "Allow other tailnet devices to route all their traffic through this router."
+msgstr "允许 tailnet 内其他设备通过本路由器转发全部流量。"
+
+msgid "Use exit node"
+msgstr "使用出口节点"
+
+msgid "Route this router's traffic through another exit node. Enter its Tailscale IP or hostname; leave empty to disable."
+msgstr "将本路由器的流量经由其他出口节点转发。填写对方 Tailscale IP 或主机名，留空则不使用。"
+
+msgid "Allow LAN access"
+msgstr "允许访问 LAN"
+
+msgid "Allow direct access to the local LAN while using an exit node."
+msgstr "使用出口节点时仍允许直接访问本地 LAN。"
 
 msgid "Firewall Settings"
 msgstr "防火墙设置"
@@ -108,3 +276,9 @@ msgstr "NAT 伪装"
 
 msgid "Enable NAT masquerading on the Tailscale zone. Required when this node acts as an exit node or subnet router."
 msgstr "在 Tailscale 区域开启 NAT 伪装。本节点作为出口节点或子网路由器时需要开启。"
+
+msgid "Inbound port whitelist"
+msgstr "入站端口白名单"
+
+msgid "Leave empty to allow all ports. When set, only the listed ports are allowed from the Tailscale network; set the input policy to Reject or Drop for this to take effect."
+msgstr "留空放行全部端口。填写后仅放行列表中的端口，需同时将入站策略设为「拒绝」或「丢弃」方可生效。"

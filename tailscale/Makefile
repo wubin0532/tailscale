@@ -31,7 +31,7 @@ GO_PKG_LDFLAGS_X:=tailscale.com/version.shortStamp=$(PKG_VERSION)
 GO_PKG_TAGS:=ts_include_cli,ts_omit_aws,ts_omit_bird,ts_omit_completion,ts_omit_kube,ts_omit_systray,ts_omit_taildrop,ts_omit_tap,ts_omit_tpm
 
 ifeq ($(CONFIG_TAILSCALE_EXTRA_SMALL),y)
-GO_PKG_TAGS+=,ts_omit_acme,ts_omit_connectivity_control,ts_omit_debugeventbus,ts_omit_debugportmapper,ts_omit_desktop_sessions,ts_omit_drive,ts_omit_kubernetes,ts_omit_oauthkey,ts_omit_outboundproxy,ts_omit_posture,ts_omit_ssh
+GO_PKG_TAGS+=,ts_omit_acme,ts_omit_connectivity_control,ts_omit_debugeventbus,ts_omit_debugportmapper,ts_omit_desktop_sessions,ts_omit_drive,ts_omit_kubernetes,ts_omit_oauthkey,ts_omit_outboundproxy,ts_omit_posture
 GO_PKG_LDFLAGS+= -s -w
 endif
 

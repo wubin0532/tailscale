@@ -3,9 +3,9 @@
 		"description": "Grant UCI access for luci-app-tailscale",
 		"read": {
 			"ubus": {
-				"tailscale": [ "get_status", "get_log" ]
+				"tailscale": [ "get_status", "get_log", "get_netcheck", "ping" ]
 			},
-			"uci": [ "tailscale" ]
+			"uci": [ "tailscale", "network" ]
 		},
 		"write": {
 			"ubus": {

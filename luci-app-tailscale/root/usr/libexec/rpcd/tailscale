@@ -31,14 +31,41 @@ get_status() {
 	json_add_string dns_name "$dnsname"
 	json_add_string user "$loginname"
 	json_add_string ips "${ips% }"
+	json_add_string raw "$raw"
 	json_dump
 }
 
 get_log() {
 	local log
-	log=$(logread 2>/dev/null | grep -i tailscale | tail -n 50)
+	log=$(logread 2>/dev/null | grep -i tailscale | tail -n 100)
 	json_init
 	json_add_string log "$log"
+	json_dump
+}
+
+get_netcheck() {
+	local out
+	out=$($CLI netcheck 2>&1)
+	json_init
+	json_add_string output "$out"
+	json_dump
+}
+
+do_ping() {
+	local input host out
+	read -r input
+	host=$(jsonfilter -s "$input" -e '@.host' 2>/dev/null)
+	case "$host" in
+		''|*[!0-9a-zA-Z.:-]*)
+			json_init
+			json_add_string output "invalid host"
+			json_dump
+			return
+			;;
+	esac
+	out=$($CLI ping --c 2 --timeout 5s "$host" 2>&1)
+	json_init
+	json_add_string output "$out"
 	json_dump
 }
 
@@ -53,12 +80,14 @@ do_logout() {
 
 case "$1" in
 	list)
-		printf '%s\n' '{"get_status":{},"get_log":{},"logout":{}}'
+		printf '%s\n' '{"get_status":{},"get_log":{},"get_netcheck":{},"ping":{"host":"string"},"logout":{}}'
 		;;
 	call)
 		case "$2" in
 			get_status) get_status ;;
 			get_log) get_log ;;
+			get_netcheck) get_netcheck ;;
+			ping) do_ping ;;
 			logout) do_logout ;;
 		esac
 		;;

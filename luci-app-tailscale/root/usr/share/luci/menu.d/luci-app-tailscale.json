@@ -21,9 +21,31 @@
 			"acl": [ "luci-app-tailscale" ]
 		}
 	},
+	"admin/services/tailscale/peers": {
+		"title": "Peers",
+		"order": 20,
+		"action": {
+			"type": "view",
+			"path": "tailscale/peers"
+		},
+		"depends": {
+			"acl": [ "luci-app-tailscale" ]
+		}
+	},
+	"admin/services/tailscale/log": {
+		"title": "Logs",
+		"order": 30,
+		"action": {
+			"type": "view",
+			"path": "tailscale/log"
+		},
+		"depends": {
+			"acl": [ "luci-app-tailscale" ]
+		}
+	},
 	"admin/services/tailscale/settings": {
 		"title": "Global Settings",
-		"order": 20,
+		"order": 40,
 		"action": {
 			"type": "view",
 			"path": "tailscale/settings"

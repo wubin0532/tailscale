@@ -11,9 +11,14 @@ CLI=/usr/sbin/tailscale
 SOCK_DIR=/var/run/tailscale
 
 routes=""
+ports=""
 
 append_route() {
 	routes="${routes:+$routes,}$1"
+}
+
+append_port() {
+	ports="${ports:+$ports }$1"
 }
 
 fw_find_tailscale_zone() {
@@ -36,6 +41,16 @@ fw_cleanup() {
 	while uci -q get "firewall.@forwarding[$i]" >/dev/null 2>&1; do
 		if [ "$(uci -q get "firewall.@forwarding[$i].ts_auto")" = "1" ]; then
 			uci delete "firewall.@forwarding[$i]"
+			changed=1
+		else
+			i=$((i + 1))
+		fi
+	done
+
+	i=0
+	while uci -q get "firewall.@rule[$i]" >/dev/null 2>&1; do
+		if [ "$(uci -q get "firewall.@rule[$i].ts_auto")" = "1" ]; then
+			uci delete "firewall.@rule[$i]"
 			changed=1
 		else
 			i=$((i + 1))
@@ -72,13 +87,15 @@ fw_setup() {
 	config_get input auto input ACCEPT
 	config_get_bool lan_forward auto lan_forward 1
 	config_get_bool masq auto masq 1
+	ports=""
+	config_list_foreach auto ports append_port
 
 	if fw_find_tailscale_zone; then
 		logger -t tailscale "firewall zone 'tailscale' already exists, skip auto setup"
 		return 0
 	fi
 
-	local z f
+	local z f p r
 	z=$(uci add firewall zone)
 	uci set "firewall.$z.name=tailscale"
 	uci set "firewall.$z.input=$input"
@@ -100,6 +117,17 @@ fw_setup() {
 		uci set "firewall.$f.ts_auto=1"
 	fi
 
+	# inbound port whitelist: per-port accept rules from the tailscale zone
+	for p in $ports; do
+		r=$(uci add firewall rule)
+		uci set "firewall.$r.name=Allow-Tailscale-$p"
+		uci set "firewall.$r.src=tailscale"
+		uci set "firewall.$r.proto=tcpudp"
+		uci set "firewall.$r.dest_port=$p"
+		uci set "firewall.$r.target=ACCEPT"
+		uci set "firewall.$r.ts_auto=1"
+	done
+
 	uci commit firewall
 	/etc/init.d/firewall reload >/dev/null 2>&1
 	logger -t tailscale "auto firewall rules installed"
@@ -107,11 +135,17 @@ fw_setup() {
 
 # Apply tailscale up flags from UCI. Runs in background after the daemon is up.
 apply_settings() {
-	local accept_routes hostname auth_key
+	local accept_routes hostname auth_key login_server ssh \
+	      advertise_exit_node exit_node exit_allow_lan
 	config_load $CONF
 	config_get_bool accept_routes settings accept_routes 0
 	config_get hostname settings hostname ""
 	config_get auth_key settings auth_key ""
+	config_get login_server settings login_server ""
+	config_get_bool ssh settings ssh 0
+	config_get_bool advertise_exit_node settings advertise_exit_node 0
+	config_get exit_node settings exit_node ""
+	config_get_bool exit_allow_lan settings exit_allow_lan 1
 	config_list_foreach settings advertise_routes append_route
 
 	local i
@@ -129,6 +163,13 @@ apply_settings() {
 	[ -n "$hostname" ] && args="$args --hostname=$hostname"
 	[ -n "$routes" ] && args="$args --advertise-routes=$routes"
 	[ -n "$auth_key" ] && args="$args --auth-key=$auth_key"
+	[ -n "$login_server" ] && args="$args --login-server=$login_server"
+	[ "$ssh" -eq 1 ] && args="$args --ssh=true"
+	[ "$advertise_exit_node" -eq 1 ] && args="$args --advertise-exit-node"
+	if [ -n "$exit_node" ]; then
+		args="$args --exit-node=$exit_node"
+		[ "$exit_allow_lan" -eq 1 ] && args="$args --exit-node-allow-lan-access=true"
+	fi
 
 	# intentional word splitting: $args holds multiple CLI flags
 	$CLI up $args >/dev/null 2>&1 || true
