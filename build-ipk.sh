@@ -5,7 +5,7 @@ set -e
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 DIST="$ROOT/dist"
 TS_VER=1.102.2
-TS_REL=1
+TS_REL=2
 LUCI_VER=1.0.0
 LUCI_REL=1
 
@@ -35,7 +35,12 @@ for pair in "${ARCHES[@]}"; do
 	pkg="$DIST/pkg-tailscale-$owrt_arch"
 	mkdir -p "$pkg/data/usr/sbin" "$pkg/data/etc/tailscale" "$pkg/control"
 
-	cp "$ROOT/build/bin/tailscaled-linux-$go_arch" "$pkg/data/usr/sbin/tailscaled"
+	# 优先使用 UPX 压缩后的二进制
+	if [ -f "$ROOT/build/bin/upx/tailscaled-linux-$go_arch" ]; then
+		cp "$ROOT/build/bin/upx/tailscaled-linux-$go_arch" "$pkg/data/usr/sbin/tailscaled"
+	else
+		cp "$ROOT/build/bin/tailscaled-linux-$go_arch" "$pkg/data/usr/sbin/tailscaled"
+	fi
 	chmod 755 "$pkg/data/usr/sbin/tailscaled"
 	ln -sf tailscaled "$pkg/data/usr/sbin/tailscale"
 
@@ -49,7 +54,7 @@ Section: net
 Installed-Size: $size
 Depends: ca-bundle, kmod-tun
 Provides: tailscaled
-Description: Zero config VPN (combined tailscaled/tailscale binary, extra-small build).
+Description: Zero config VPN (combined tailscaled/tailscale binary, extra-small build, UPX compressed).
  Init script, UCI config and LuCI interface are provided by luci-app-tailscale.
 EOF
 
