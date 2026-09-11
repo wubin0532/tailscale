@@ -11,34 +11,24 @@ var callGetLog = rpc.declare({
 
 return view.extend({
 	render: function() {
-		if (!document.getElementById('ts-style'))
-			document.head.appendChild(E('link', {
-				'rel': 'stylesheet', 'id': 'ts-style',
-				'href': L.resource('tailscale/style.css')
-			}));
-
-		var v = E('div', { 'class': 'ts-wrap' }, [
-			E('div', { 'class': 'ts-pagehead' }, [
-				E('h1', {}, _('Logs')),
-				E('p', {}, _('Tailscale daemon logs, refreshed every 3 seconds.'))
-			]),
-			E('div', { 'class': 'ts-panel' }, [
-				E('header', {}, [
-					E('span', { 'class': 'ts-dot' }),
-					E('h3', {}, 'logread · tailscale'),
-					E('div', { 'style': 'margin-left:auto' }, [
-						E('button', {
-							'class': 'ts-btn ts-btn-ghost',
-							'style': 'padding:5px 14px;font-size:12px',
-							'click': L.bind(function() {
-								this.updateLog();
-							}, this)
-						}, _('Refresh'))
-					])
+		var v = E('div', {}, [
+			E('h2', {}, _('Logs')),
+			E('div', { 'class': 'cbi-section-descr' },
+				_('Tailscale daemon logs, refreshed every 3 seconds.')),
+			E('div', { 'class': 'cbi-section' }, [
+				E('h3', {}, [
+					'logread · tailscale',
+					' ',
+					E('button', {
+						'class': 'btn cbi-button',
+						'style': 'padding:2px 10px',
+						'click': L.bind(this.updateLog, this)
+					}, _('Refresh'))
 				]),
-				E('div', { 'style': 'padding:18px 24px' }, [
-					E('pre', { 'class': 'ts-log', 'id': 'ts_log' }, _('Loading...'))
-				])
+				E('pre', {
+					'id': 'ts_log',
+					'style': 'max-height:520px;overflow-y:auto;font-size:12px;white-space:pre-wrap;word-break:break-all'
+				}, _('Loading...'))
 			])
 		]);
 
@@ -53,7 +43,7 @@ return view.extend({
 			if (!pre) return;
 			var nearBottom = pre.scrollHeight - pre.scrollTop - pre.clientHeight < 60;
 			pre.textContent = (res && res.log) || _('No log entries.');
-			if (nearBottom || pre.textContent === _('Loading...'))
+			if (nearBottom)
 				pre.scrollTop = pre.scrollHeight;
 		});
 	},

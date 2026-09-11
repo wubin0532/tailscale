@@ -6,17 +6,18 @@ set -e
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 DIST="$ROOT/dist"
 TS_VER=1.102.2
-TS_REL=3
+TS_REL=7
 
 rm -rf "$DIST"
 mkdir -p "$DIST"
 
 pack_ipk() { # $1=pkg dir (含 data/ control/ ), $2=output
 	local dir="$1" out="$2"
-	( cd "$dir/data"    && tar --uid=0 --gid=0 --numeric-owner -czf "$dir/data.tar.gz" . )
-	( cd "$dir/control" && tar --uid=0 --gid=0 --numeric-owner -czf "$dir/control.tar.gz" . )
+	# gnutar 格式：避免 macOS bsdtar 生成 busybox tar 不认识的 PAX 扩展头
+	( cd "$dir/data"    && tar --format=gnutar --uid=0 --gid=0 --numeric-owner -czf "$dir/data.tar.gz" . )
+	( cd "$dir/control" && tar --format=gnutar --uid=0 --gid=0 --numeric-owner -czf "$dir/control.tar.gz" . )
 	echo "2.0" > "$dir/debian-binary"
-	( cd "$dir" && tar --uid=0 --gid=0 --numeric-owner -czf "$out" ./debian-binary ./control.tar.gz ./data.tar.gz )
+	( cd "$dir" && tar --format=gnutar --uid=0 --gid=0 --numeric-owner -czf "$out" ./debian-binary ./control.tar.gz ./data.tar.gz )
 	echo "built: $out"
 }
 
@@ -90,12 +91,21 @@ EOF
 [ -n "${IPKG_INSTROOT}" ] || {
 	rm -rf /tmp/luci-indexcache /tmp/luci-modulecache 2>/dev/null
 	/etc/init.d/rpcd reload 2>/dev/null
+	# upgrade: restart if the service was enabled
+	if [ "$1" = "configure" ] && /etc/init.d/tailscale enabled 2>/dev/null; then
+		/etc/init.d/tailscale start >/dev/null 2>&1 &
+	fi
 }
 exit 0
 EOF
 
 	cat > "$pkg/control/prerm" <<'EOF'
 #!/bin/sh
+# upgrade: only stop the daemon, keep the service enabled and config intact
+if [ "$1" = "upgrade" ]; then
+	[ -n "${IPKG_INSTROOT}" ] || /etc/init.d/tailscale stop >/dev/null 2>&1
+	exit 0
+fi
 [ -n "${IPKG_INSTROOT}" ] || {
 	/etc/init.d/tailscale stop 2>/dev/null
 	/etc/init.d/tailscale disable 2>/dev/null

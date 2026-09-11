@@ -18,35 +18,28 @@ var callPing = rpc.declare({
 
 return view.extend({
 	render: function() {
-		if (!document.getElementById('ts-style'))
-			document.head.appendChild(E('link', {
-				'rel': 'stylesheet', 'id': 'ts-style',
-				'href': L.resource('tailscale/style.css')
-			}));
-
-		var v = E('div', { 'class': 'ts-wrap' }, [
-			E('div', { 'class': 'ts-pagehead' }, [
-				E('h1', {}, _('Peers')),
-				E('p', {}, _('All devices in your tailnet. Refresh automatically every 5 seconds.'))
-			]),
-			E('div', { 'class': 'ts-panel' }, [
-				E('header', {}, [
-					E('span', { 'class': 'ts-dot' }),
-					E('h3', {}, _('Online Devices')),
-					E('span', { 'class': 'ts-tag', 'id': 'ts_peer_count', 'style': 'margin-left:auto' }, '—')
+		var v = E('div', {}, [
+			E('h2', {}, _('Peers')),
+			E('div', { 'class': 'cbi-section-descr' },
+				_('All devices in your tailnet. Refresh automatically every 5 seconds.')),
+			E('div', { 'class': 'cbi-section' }, [
+				E('h3', {}, [
+					_('Online Devices'),
+					' ',
+					E('span', { 'id': 'ts_peer_count', 'style': 'font-weight:normal;color:#888' }, '')
 				]),
-				E('table', { 'class': 'ts-table' }, [
-					E('thead', {}, E('tr', {}, [
-						E('th', {}, _('Node')),
-						E('th', {}, 'Tailscale IP'),
-						E('th', {}, _('OS')),
-						E('th', {}, _('Status')),
-						E('th', {}, _('Connection')),
-						E('th', {}, _('Last Seen')),
-						E('th', {}, '')
+				E('table', { 'class': 'table cbi-section-table' }, [
+					E('thead', {}, E('tr', { 'class': 'tr table-titles' }, [
+						E('th', { 'class': 'th' }, _('Node')),
+						E('th', { 'class': 'th' }, 'Tailscale IP'),
+						E('th', { 'class': 'th' }, _('OS')),
+						E('th', { 'class': 'th' }, _('Status')),
+						E('th', { 'class': 'th' }, _('Connection')),
+						E('th', { 'class': 'th' }, _('Last Seen')),
+						E('th', { 'class': 'th' }, '')
 					])),
 					E('tbody', { 'id': 'ts_peers' }, [
-						E('tr', {}, E('td', { 'colspan': 7, 'style': 'color:var(--ts-dim)' }, _('Loading...')))
+						E('tr', { 'class': 'tr' }, E('td', { 'class': 'td', 'colspan': 7 }, _('Loading...')))
 					])
 				])
 			])
@@ -89,44 +82,42 @@ return view.extend({
 
 			tbody.textContent = '';
 			if (!peers.length) {
-				tbody.appendChild(E('tr', {}, E('td',
-					{ 'colspan': 7, 'style': 'color:var(--ts-dim)' },
-					_('No peers found.'))));
+				tbody.appendChild(E('tr', { 'class': 'tr' }, E('td',
+					{ 'class': 'td', 'colspan': 7 }, _('No peers found.'))));
 				return;
 			}
 
 			peers.forEach(L.bind(function(p) {
 				var ip = (p.TailscaleIPs || [])[0] || '—';
-				var conn, cls;
-				if (!p.Online) {
-					conn = _('Offline'); cls = 'off';
-				} else if (p.CurAddr) {
-					conn = _('Direct'); cls = 'direct';
-				} else {
-					conn = _('Relay') + (p.Relay ? ' (' + p.Relay + ')' : ''); cls = 'relay';
-				}
+				var conn;
+				if (!p.Online)
+					conn = '—';
+				else if (p.CurAddr)
+					conn = _('Direct');
+				else
+					conn = _('Relay') + (p.Relay ? ' (' + p.Relay + ')' : '');
 
 				var pingBtn = E('button', {
-					'class': 'ts-btn ts-btn-ghost',
-					'style': 'padding:5px 14px;font-size:12px',
+					'class': 'btn cbi-button',
+					'style': 'padding:2px 10px',
 					'click': L.bind(this.handlePing, this, ip, pingBtn)
 				}, _('Ping'));
 
-				tbody.appendChild(E('tr', {}, [
-					E('td', {}, [
+				var statusEl = E('span', {
+					'style': 'font-weight:bold;color:' + (p.Online ? 'green' : '#999')
+				}, p.Online ? _('Online') : _('Offline'));
+
+				tbody.appendChild(E('tr', { 'class': 'tr' }, [
+					E('td', { 'class': 'td' }, [
 						E('strong', {}, p.HostName || '—'),
-						p.ExitNode ? ' ' + '' : '',
-						p.ExitNodeOption ? E('span', { 'class': 'ts-badge exit' }, 'exit') : ''
+						p.ExitNodeOption ? E('span', { 'class': 'badge', 'style': 'margin-left:6px' }, 'exit') : ''
 					]),
-					E('td', { 'class': 'ts-mono' }, ip),
-					E('td', {}, p.OS || '—'),
-					E('td', {}, E('span', {
-						'class': p.Online ? 'ts-online' : 'ts-offline'
-					}, p.Online ? '● ' + _('Online') : '○ ' + _('Offline'))),
-					E('td', {}, E('span', { 'class': 'ts-badge ' + cls }, conn)),
-					E('td', { 'style': 'color:var(--ts-dim)' },
-						p.Online ? _('now') : this.fmtSeen(p.LastSeen)),
-					E('td', {}, pingBtn)
+					E('td', { 'class': 'td' }, ip),
+					E('td', { 'class': 'td' }, p.OS || '—'),
+					E('td', { 'class': 'td' }, statusEl),
+					E('td', { 'class': 'td' }, conn),
+					E('td', { 'class': 'td' }, p.Online ? _('now') : this.fmtSeen(p.LastSeen)),
+					E('td', { 'class': 'td' }, pingBtn)
 				]));
 			}, this));
 		}, this));
@@ -137,7 +128,9 @@ return view.extend({
 		btn.textContent = '…';
 		return callPing(ip).then(function(res) {
 			var out = (res && res.output) ? res.output.trim().split('\n') : [];
-			btn.textContent = out.length ? out[out.length - 1].replace(/^pong from \S+ \(([^)]*)\).*in ([\d.]+ms).*/, '$1 · $2') : _('timeout');
+			btn.textContent = out.length
+				? out[out.length - 1].replace(/^pong from \S+ \(([^)]*)\).*in ([\d.]+ms).*/, '$1 · $2')
+				: _('timeout');
 		}).finally(function() {
 			btn.disabled = false;
 			setTimeout(function() { btn.textContent = _('Ping'); }, 4000);

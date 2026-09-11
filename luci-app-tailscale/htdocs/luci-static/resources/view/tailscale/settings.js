@@ -25,12 +25,6 @@ return view.extend({
 	},
 
 	render: function() {
-		if (!document.getElementById('ts-style'))
-			document.head.appendChild(E('link', {
-				'rel': 'stylesheet', 'id': 'ts-style',
-				'href': L.resource('tailscale/style.css')
-			}));
-
 		var m, s, o;
 
 		m = new form.Map('tailscale', _('Tailscale'), [
@@ -42,8 +36,8 @@ return view.extend({
 		s = m.section(form.NamedSection, 'settings', 'settings', _('Global Settings'));
 
 		o = s.option(form.Flag, 'accept_routes', _('Accept routes'),
-			_('Accept subnet routes advertised by other nodes.'));
-		o.default = '1';
+			_('Accept subnet routes advertised by other nodes. Disable on the subnet router itself to avoid route conflicts with its own LAN.'));
+		o.default = '0';
 		o.rmempty = false;
 
 		o = s.option(form.Value, 'hostname', _('Device Name'),
@@ -126,8 +120,6 @@ return view.extend({
 		o.placeholder = '22';
 		o.depends('fw_enabled', '1');
 
-		return m.render().then(function(node) {
-			return E('div', { 'class': 'ts-wrap' }, node);
-		});
+		return m.render();
 	}
 });

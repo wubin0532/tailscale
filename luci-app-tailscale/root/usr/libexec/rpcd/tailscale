@@ -2,6 +2,7 @@
 # rpcd backend for luci-app-tailscale
 
 . /usr/share/libubox/jshn.sh
+. /usr/lib/tailscale-luci.sh
 
 CLI=/usr/sbin/tailscale
 
@@ -69,6 +70,25 @@ do_ping() {
 	json_dump
 }
 
+do_login() {
+	ts_login
+	json_init
+	json_add_boolean success 1
+	json_dump
+}
+
+do_uninstall() {
+	# logout, stop service (stop_service runs fw_cleanup), wipe state & config
+	$CLI logout >/dev/null 2>&1
+	/etc/init.d/tailscale stop >/dev/null 2>&1
+	/etc/init.d/tailscale disable >/dev/null 2>&1
+	rm -rf /etc/tailscale /var/run/tailscale
+	rm -f /etc/config/tailscale
+	json_init
+	json_add_boolean success 1
+	json_dump
+}
+
 do_logout() {
 	local out
 	out=$($CLI logout 2>&1)
@@ -80,7 +100,7 @@ do_logout() {
 
 case "$1" in
 	list)
-		printf '%s\n' '{"get_status":{},"get_log":{},"get_netcheck":{},"ping":{"host":"string"},"logout":{}}'
+		printf '%s\n' '{"get_status":{},"get_log":{},"get_netcheck":{},"ping":{"host":"string"},"login":{},"logout":{},"uninstall":{}}'
 		;;
 	call)
 		case "$2" in
@@ -88,7 +108,9 @@ case "$1" in
 			get_log) get_log ;;
 			get_netcheck) get_netcheck ;;
 			ping) do_ping ;;
+			login) do_login ;;
 			logout) do_logout ;;
+			uninstall) do_uninstall ;;
 		esac
 		;;
 esac

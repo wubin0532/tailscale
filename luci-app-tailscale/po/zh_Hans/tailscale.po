@@ -187,6 +187,9 @@ msgstr "允许组网"
 msgid "Accept subnet routes advertised by other nodes."
 msgstr "接受其他节点公开的子网路由。"
 
+msgid "Accept subnet routes advertised by other nodes. Disable on the subnet router itself to avoid route conflicts with its own LAN."
+msgstr "接受其他节点公开的子网路由。子网路由器本机建议关闭，避免与自身 LAN 网段冲突。"
+
 msgid "Device Name"
 msgstr "设备名称"
 
@@ -282,3 +285,24 @@ msgstr "入站端口白名单"
 
 msgid "Leave empty to allow all ports. When set, only the listed ports are allowed from the Tailscale network; set the input policy to Reject or Drop for this to take effect."
 msgstr "留空放行全部端口。填写后仅放行列表中的端口，需同时将入站策略设为「拒绝」或「丢弃」方可生效。"
+
+msgid "Not logged in"
+msgstr "未登录"
+
+msgid "Authorized"
+msgstr "已授权"
+
+msgid "Requesting login URL..."
+msgstr "正在获取登录链接..."
+
+msgid "Uninstall"
+msgstr "卸载"
+
+msgid "Logout, stop the service, remove firewall rules, state files and configuration."
+msgstr "注销登录、停止服务，并清理防火墙规则、状态文件与配置。"
+
+msgid "This will logout, stop the service, and remove firewall rules, state files and configuration. The package itself can then be removed from System → Software. Continue?"
+msgstr "将注销登录、停止服务，并清理防火墙规则、状态文件与配置。之后可在「系统 → 软件包」中移除本插件。是否继续？"
+
+msgid "Uninstalling..."
+msgstr "正在卸载..."
