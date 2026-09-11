@@ -1,0 +1,65 @@
+#!/bin/sh
+# rpcd backend for luci-app-tailscale
+
+. /usr/share/libubox/jshn.sh
+
+CLI=/usr/sbin/tailscale
+
+get_status() {
+	local running=0 state="" authurl="" nodekey="" hostname="" dnsname="" userid="" loginname="" ips=""
+	pidof tailscaled >/dev/null 2>&1 && running=1
+
+	local raw
+	raw=$($CLI status --json 2>/dev/null)
+	if [ -n "$raw" ]; then
+		state=$(jsonfilter -s "$raw" -e '@.BackendState' 2>/dev/null)
+		authurl=$(jsonfilter -s "$raw" -e '@.AuthURL' 2>/dev/null)
+		nodekey=$(jsonfilter -s "$raw" -e '@.Self.PublicKey' 2>/dev/null)
+		hostname=$(jsonfilter -s "$raw" -e '@.Self.HostName' 2>/dev/null)
+		dnsname=$(jsonfilter -s "$raw" -e '@.Self.DNSName' 2>/dev/null)
+		userid=$(jsonfilter -s "$raw" -e '@.Self.UserID' 2>/dev/null)
+		[ -n "$userid" ] && loginname=$(jsonfilter -s "$raw" -e "@.User['$userid'].LoginName" 2>/dev/null)
+		ips=$(jsonfilter -s "$raw" -e '@.Self.TailscaleIPs[*]' 2>/dev/null | tr '\n' ' ')
+	fi
+
+	json_init
+	json_add_boolean running "$running"
+	json_add_string backend_state "$state"
+	json_add_string auth_url "$authurl"
+	json_add_string node_key "$nodekey"
+	json_add_string hostname "$hostname"
+	json_add_string dns_name "$dnsname"
+	json_add_string user "$loginname"
+	json_add_string ips "${ips% }"
+	json_dump
+}
+
+get_log() {
+	local log
+	log=$(logread 2>/dev/null | grep -i tailscale | tail -n 50)
+	json_init
+	json_add_string log "$log"
+	json_dump
+}
+
+do_logout() {
+	local out
+	out=$($CLI logout 2>&1)
+	json_init
+	json_add_boolean success "$?"
+	json_add_string output "$out"
+	json_dump
+}
+
+case "$1" in
+	list)
+		printf '%s\n' '{"get_status":{},"get_log":{},"logout":{}}'
+		;;
+	call)
+		case "$2" in
+			get_status) get_status ;;
+			get_log) get_log ;;
+			logout) do_logout ;;
+		esac
+		;;
+esac

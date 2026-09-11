@@ -1,0 +1,18 @@
+# Tailscale build options
+
+config TAILSCALE_EXTRA_SMALL
+	bool "Build extra-small binary"
+	default y
+	help
+	  Omit more optional features and strip debug symbols to
+	  reduce the binary size. Suitable for routers with small flash.
+
+config TAILSCALE_UPX
+	bool "Compress binary with UPX"
+	default n
+	help
+	  Compress the combined binary with UPX (--lzma --best).
+	  Requires the 'upx' tool installed on the build host.
+	  WARNING: packers change how the binary interacts with the OS
+	  and may be flagged by antivirus software. See
+	  https://tailscale.com/docs/how-to/set-up-small-tailscale

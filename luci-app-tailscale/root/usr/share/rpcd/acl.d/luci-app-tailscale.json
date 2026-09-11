@@ -1,0 +1,18 @@
+{
+	"luci-app-tailscale": {
+		"description": "Grant UCI access for luci-app-tailscale",
+		"read": {
+			"ubus": {
+				"tailscale": [ "get_status", "get_log" ]
+			},
+			"uci": [ "tailscale" ]
+		},
+		"write": {
+			"ubus": {
+				"tailscale": [ "logout" ],
+				"luci": [ "setInitAction" ]
+			},
+			"uci": [ "tailscale" ]
+		}
+	}
+}

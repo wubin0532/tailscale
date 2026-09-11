@@ -1,0 +1,168 @@
+#!/bin/sh /etc/rc.common
+
+START=99
+STOP=10
+
+USE_PROCD=1
+
+CONF=tailscale
+PROG=/usr/sbin/tailscaled
+CLI=/usr/sbin/tailscale
+SOCK_DIR=/var/run/tailscale
+
+routes=""
+
+append_route() {
+	routes="${routes:+$routes,}$1"
+}
+
+fw_find_tailscale_zone() {
+	local i=0
+	while uci -q get "firewall.@zone[$i]" >/dev/null 2>&1; do
+		if [ "$(uci -q get "firewall.@zone[$i].name")" = "tailscale" ]; then
+			return 0
+		fi
+		i=$((i + 1))
+	done
+	return 1
+}
+
+# Remove only sections previously created by this script (marked ts_auto=1),
+# never touch user-managed firewall config.
+fw_cleanup() {
+	local changed=0 i
+
+	i=0
+	while uci -q get "firewall.@forwarding[$i]" >/dev/null 2>&1; do
+		if [ "$(uci -q get "firewall.@forwarding[$i].ts_auto")" = "1" ]; then
+			uci delete "firewall.@forwarding[$i]"
+			changed=1
+		else
+			i=$((i + 1))
+		fi
+	done
+
+	i=0
+	while uci -q get "firewall.@zone[$i]" >/dev/null 2>&1; do
+		if [ "$(uci -q get "firewall.@zone[$i].name")" = "tailscale" ] && \
+		   [ "$(uci -q get "firewall.@zone[$i].ts_auto")" = "1" ]; then
+			uci delete "firewall.@zone[$i]"
+			changed=1
+		else
+			i=$((i + 1))
+		fi
+	done
+
+	if [ "$changed" -eq 1 ]; then
+		uci commit firewall
+		/etc/init.d/firewall reload >/dev/null 2>&1
+		logger -t tailscale "auto firewall rules removed"
+	fi
+}
+
+# Idempotent: skips if a zone named 'tailscale' already exists (user-managed),
+# otherwise creates zone + forwardings and marks them with ts_auto=1.
+fw_setup() {
+	local enabled input lan_forward masq
+	config_get_bool enabled auto enabled 0
+	if [ "$enabled" -ne 1 ]; then
+		fw_cleanup
+		return 0
+	fi
+	config_get input auto input ACCEPT
+	config_get_bool lan_forward auto lan_forward 1
+	config_get_bool masq auto masq 1
+
+	if fw_find_tailscale_zone; then
+		logger -t tailscale "firewall zone 'tailscale' already exists, skip auto setup"
+		return 0
+	fi
+
+	local z f
+	z=$(uci add firewall zone)
+	uci set "firewall.$z.name=tailscale"
+	uci set "firewall.$z.input=$input"
+	uci set "firewall.$z.output=ACCEPT"
+	uci set "firewall.$z.forward=ACCEPT"
+	uci add_list "firewall.$z.device=tailscale0"
+	[ "$masq" -eq 1 ] && uci set "firewall.$z.masq=1"
+	uci set "firewall.$z.mtu_fix=1"
+	uci set "firewall.$z.ts_auto=1"
+
+	if [ "$lan_forward" -eq 1 ]; then
+		f=$(uci add firewall forwarding)
+		uci set "firewall.$f.src=lan"
+		uci set "firewall.$f.dest=tailscale"
+		uci set "firewall.$f.ts_auto=1"
+		f=$(uci add firewall forwarding)
+		uci set "firewall.$f.src=tailscale"
+		uci set "firewall.$f.dest=lan"
+		uci set "firewall.$f.ts_auto=1"
+	fi
+
+	uci commit firewall
+	/etc/init.d/firewall reload >/dev/null 2>&1
+	logger -t tailscale "auto firewall rules installed"
+}
+
+# Apply tailscale up flags from UCI. Runs in background after the daemon is up.
+apply_settings() {
+	local accept_routes hostname auth_key
+	config_load $CONF
+	config_get_bool accept_routes settings accept_routes 0
+	config_get hostname settings hostname ""
+	config_get auth_key settings auth_key ""
+	config_list_foreach settings advertise_routes append_route
+
+	local i
+	for i in $(seq 1 15); do
+		$CLI status >/dev/null 2>&1 && break
+		sleep 1
+	done
+
+	local args="--reset"
+	if [ "$accept_routes" -eq 1 ]; then
+		args="$args --accept-routes=true"
+	else
+		args="$args --accept-routes=false"
+	fi
+	[ -n "$hostname" ] && args="$args --hostname=$hostname"
+	[ -n "$routes" ] && args="$args --advertise-routes=$routes"
+	[ -n "$auth_key" ] && args="$args --auth-key=$auth_key"
+
+	# intentional word splitting: $args holds multiple CLI flags
+	$CLI up $args >/dev/null 2>&1 || true
+}
+
+start_service() {
+	local enabled port state_file
+	config_load $CONF
+	config_get_bool enabled settings enabled 0
+	[ "$enabled" -eq 1 ] || return 0
+
+	config_get port settings port 41641
+	config_get state_file settings state_file /etc/tailscale/tailscaled.state
+
+	mkdir -p /etc/tailscale "$SOCK_DIR"
+
+	procd_open_instance $CONF
+	procd_set_param command $PROG \
+		--state "$state_file" \
+		--port "$port" \
+		--socket "$SOCK_DIR/tailscaled.sock"
+	procd_set_param respawn "${respawn_threshold:-3600}" "${respawn_timeout:-5}" "${respawn_retry:-5}"
+	procd_set_param stdout 1
+	procd_set_param stderr 1
+	procd_close_instance
+
+	fw_setup
+	apply_settings &
+}
+
+stop_service() {
+	fw_cleanup
+}
+
+service_triggers() {
+	procd_add_reload_trigger $CONF
+}

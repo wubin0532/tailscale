@@ -1,0 +1,110 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+msgid "Tailscale"
+msgstr "Tailscale"
+
+msgid "Tailscale connects your devices so you can securely access remote resources. For details, please visit "
+msgstr "Tailscale 连接您的设备，以便轻松访问远程资源。详情请查看 "
+
+msgid "Service Status"
+msgstr "服务状态"
+
+msgid "Enable"
+msgstr "启用"
+
+msgid "Running"
+msgstr "Running"
+
+msgid "Stopped"
+msgstr "已停止"
+
+msgid "Current Node"
+msgstr "当前节点"
+
+msgid "Tailscale IP"
+msgstr "Tailscale IP"
+
+msgid "Bound User"
+msgstr "已绑定用户"
+
+msgid "Login"
+msgstr "登录"
+
+msgid "Logout and unbind"
+msgstr "注销登录并解除绑定"
+
+msgid "This will log out of Tailscale and unbind the device from your account. Continue?"
+msgstr "将注销 Tailscale 登录并解除当前设备的绑定，是否继续？"
+
+msgid "Cancel"
+msgstr "取消"
+
+msgid "Applying changes..."
+msgstr "正在应用更改..."
+
+msgid "Failed to apply: %s"
+msgstr "应用失败：%s"
+
+msgid "Global Settings"
+msgstr "全局设置"
+
+msgid "Accept routes"
+msgstr "允许组网"
+
+msgid "Accept subnet routes advertised by other nodes."
+msgstr "接受其他节点公开的子网路由。"
+
+msgid "Device Name"
+msgstr "设备名称"
+
+msgid "Leave empty to use the device name."
+msgstr "留空则使用设备的名称"
+
+msgid "Advertise routes"
+msgstr "公开网段"
+
+msgid "Subnets allowed to be accessed through this node, e.g. 192.168.100.0/24."
+msgstr "允许被访问的网段，如 192.168.100.0/24"
+
+msgid "Auth Key"
+msgstr "认证密钥"
+
+msgid "Optional. Use an auth key to log in automatically without browser interaction."
+msgstr "可选。使用认证密钥自动登录，无需浏览器交互。"
+
+msgid "Firewall Settings"
+msgstr "防火墙设置"
+
+msgid "Auto configure firewall"
+msgstr "防火墙自动设置"
+
+msgid "Automatically create the tailscale firewall zone and forwarding rules."
+msgstr "自动创建 tailscale 防火墙区域与转发规则。"
+
+msgid "Input policy"
+msgstr "入站策略"
+
+msgid "Policy for traffic from the Tailscale network to this router."
+msgstr "Tailscale 网络访问本路由器的流量策略。"
+
+msgid "Accept"
+msgstr "接受"
+
+msgid "Reject"
+msgstr "拒绝"
+
+msgid "Drop"
+msgstr "丢弃"
+
+msgid "Allow LAN forwarding"
+msgstr "允许与 LAN 互访"
+
+msgid "Allow traffic forwarding between the LAN and Tailscale zones."
+msgstr "允许 LAN 与 Tailscale 区域之间互相转发流量。"
+
+msgid "NAT masquerading"
+msgstr "NAT 伪装"
+
+msgid "Enable NAT masquerading on the Tailscale zone. Required when this node acts as an exit node or subnet router."
+msgstr "在 Tailscale 区域开启 NAT 伪装。本节点作为出口节点或子网路由器时需要开启。"

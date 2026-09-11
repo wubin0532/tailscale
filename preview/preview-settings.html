@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Tailscale - 全局设置 - LuCI 预览</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Helvetica Neue", "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f5f5; color: #333; font-size: 14px; }
+  header { background: #2c3e50; color: #fff; padding: 0 20px; height: 52px; display: flex; align-items: center; }
+  header .brand { font-weight: 600; font-size: 16px; }
+  header nav { margin-left: 40px; }
+  header nav a { color: #cfd8dc; text-decoration: none; margin-right: 22px; font-size: 14px; }
+  .subnav { background: #fff; border-bottom: 1px solid #e0e0e0; padding: 0 20px; display: flex; }
+  .subnav a { padding: 12px 18px; color: #555; text-decoration: none; font-size: 13.5px; border-bottom: 2px solid transparent; }
+  .subnav a.active { color: #2196f3; border-bottom-color: #2196f3; font-weight: 600; }
+  main { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+  h2 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+  .descr { color: #888; font-size: 13px; margin-bottom: 18px; }
+  .descr a { color: #2196f3; text-decoration: none; }
+  .card { background: #fff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,.12); margin-bottom: 24px; overflow: hidden; }
+  .card h3 { background: #fafafa; border-bottom: 1px solid #eee; padding: 12px 20px; font-size: 15px; font-weight: 600; }
+  table.table { width: 100%; border-collapse: collapse; }
+  table.table td { padding: 12px 20px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+  table.table tr:last-child td { border-bottom: none; }
+  table.table td:first-child { width: 33%; color: #555; }
+  input[type=text], select { width: 320px; max-width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 3px; font-size: 14px; }
+  .hint { color: #999; font-size: 12.5px; margin-top: 6px; }
+  .hint code { background: #f0f0f0; padding: 1px 5px; border-radius: 3px; }
+  .cbi-checkbox input[type=checkbox] { width: 18px; height: 18px; accent-color: #2196f3; }
+  .actions { padding: 16px 20px; text-align: right; background: #fff; }
+  .btn { border: none; border-radius: 3px; padding: 9px 20px; font-size: 13.5px; cursor: pointer; margin-left: 8px; }
+  .btn-apply { background: #4caf50; color: #fff; }
+  .btn-save { background: #2196f3; color: #fff; }
+  .btn-reset { background: #eee; color: #555; }
+  .tag { display: inline-block; background: #f0f0f0; border: 1px solid #ddd; border-radius: 3px; padding: 4px 10px; margin-right: 6px; font-size: 13px; }
+  .tag b { color: #c62828; cursor: pointer; margin-left: 6px; font-weight: 400; }
+  .foot { color: #aaa; font-size: 12px; text-align: center; margin: 30px 0 20px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">OpenWrt</span>
+  <nav>
+    <a href="#">状态</a><a href="#">系统</a><a href="#">服务</a><a href="#">网络</a><a href="#">退出</a>
+  </nav>
+</header>
+<div class="subnav">
+  <a href="preview-status.html">服务状态</a>
+  <a href="preview-settings.html" class="active">全局设置</a>
+</div>
+<main>
+  <h2>Tailscale</h2>
+  <div class="descr">Tailscale 连接您的设备，以便轻松访问远程资源。详情请查看 <a href="#">tailscale</a></div>
+
+  <div class="card">
+    <h3>全局设置</h3>
+    <table class="table">
+      <tr>
+        <td>允许组网</td>
+        <td><label class="cbi-checkbox"><input type="checkbox" checked></label>
+            <div class="hint">接受其他节点公开的子网路由。</div></td>
+      </tr>
+      <tr>
+        <td>设备名称</td>
+        <td><input type="text" value="Home">
+            <div class="hint">留空则使用设备的名称</div></td>
+      </tr>
+      <tr>
+        <td>公开网段</td>
+        <td>
+          <span class="tag">192.168.199.0/24<b>×</b></span>
+          <input type="text" placeholder="添加网段" style="width:180px">
+          <div class="hint">允许被访问的网段，如 <code>192.168.100.0/24</code></div>
+        </td>
+      </tr>
+      <tr>
+        <td>认证密钥</td>
+        <td><input type="text" value="tskey-auth-••••••••" readonly style="color:#999">
+            <div class="hint">可选。使用认证密钥自动登录，无需浏览器交互。</div></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>防火墙设置</h3>
+    <table class="table">
+      <tr>
+        <td>防火墙自动设置</td>
+        <td><label class="cbi-checkbox"><input type="checkbox" checked></label>
+            <div class="hint">自动创建 tailscale 防火墙区域与转发规则。</div></td>
+      </tr>
+      <tr>
+        <td>入站策略</td>
+        <td><select><option selected>接受</option><option>拒绝</option><option>丢弃</option></select>
+            <div class="hint">Tailscale 网络访问本路由器的流量策略。</div></td>
+      </tr>
+      <tr>
+        <td>允许与 LAN 互访</td>
+        <td><label class="cbi-checkbox"><input type="checkbox" checked></label>
+            <div class="hint">允许 LAN 与 Tailscale 区域之间互相转发流量。</div></td>
+      </tr>
+      <tr>
+        <td>NAT 伪装</td>
+        <td><label class="cbi-checkbox"><input type="checkbox" checked></label>
+            <div class="hint">在 Tailscale 区域开启 NAT 伪装。本节点作为出口节点或子网路由器时需要开启。</div></td>
+      </tr>
+    </table>
+    <div class="actions">
+      <button class="btn btn-reset">重置</button>
+      <button class="btn btn-save">保存</button>
+      <button class="btn btn-apply">保存并应用</button>
+    </div>
+  </div>
+
+  <div class="foot">luci-app-tailscale 预览（静态模拟数据） · Powered by LuCI</div>
+</main>
+</body>
+</html>
