@@ -21,6 +21,40 @@ pack_ipk() { # $1=pkg dir (含 data/ control/ ), $2=output
 	echo "built: $out"
 }
 
+pack_apk() { # $1=pkg dir (含 data/ 与 control/control 元数据), $2=output
+	# apk v2 格式：gzip tar，成员为 .PKGINFO + data.tar.gz
+	# data.tar.gz 由 pack_ipk 生成，这里直接复用；data/ 根部的
+	# .post-install 等脚本由 apk 执行后丢弃，不会留在文件系统上
+	local dir="$1" out="$2"
+	local size
+	size=$(($(du -sk "$dir/data" | cut -f1) * 1024))
+
+	local pkgver pkgdesc url
+	pkgver=$(sed -n 's/^Version: //p' "$dir/control/control")
+	pkgdesc=$(sed -n 's/^Description: //p' "$dir/control/control" | tr '\n' ' ')
+	url=$(sed -n 's/^URL: //p' "$dir/control/control")
+
+	cat > "$dir/.PKGINFO" <<EOF
+# apk v2
+pkgname = tailscale-luci
+pkgver = $pkgver
+pkgdesc = $pkgdesc
+url = $url
+builddate = $(date +%s)
+packager = wubin0532
+size = $size
+arch = $owrt_arch
+origin = tailscale-luci
+EOF
+	sed -n 's/^Depends: //p'   "$dir/control/control" |
+		tr ',' '\n' | sed 's/^ *//; s/^/depend = /' >> "$dir/.PKGINFO"
+	sed -n 's/^Conflicts: //p' "$dir/control/control" |
+		tr ',' '\n' | sed 's/^ *//; s/^/conflicts = /' >> "$dir/.PKGINFO"
+
+	( cd "$dir" && tar --format=gnutar --uid=0 --gid=0 --numeric-owner -czf "$out" ./.PKGINFO ./data.tar.gz )
+	echo "built: $out"
+}
+
 # ---------- 重新生成中文翻译 ----------
 if [ -x "$ROOT/build/po2lmo" ]; then
 	mkdir -p "$ROOT/build/i18n"
@@ -74,12 +108,11 @@ Version: $TS_VER-$TS_REL
 Architecture: $owrt_arch
 Maintainer: wubin0532
 Section: net
+URL: https://github.com/wubin0532/tailscale
 Installed-Size: $size
 Depends: luci-base, rpcd, ca-bundle, kmod-tun
 Conflicts: tailscale, luci-app-tailscale
-Description: Tailscale all-in-one package: combined binary (UPX compressed,
- Tailscale SSH enabled), procd service, UCI config and LuCI web interface
- with peers list, logs, exit node and automatic firewall setup.
+Description: Tailscale all-in-one package: combined binary (UPX compressed, Tailscale SSH enabled), procd service, UCI config and LuCI web interface with peers list, logs, exit node and automatic firewall setup.
 EOF
 
 	cat > "$pkg/control/conffiles" <<EOF
@@ -115,7 +148,39 @@ exit 0
 EOF
 	chmod 755 "$pkg/control/postinst" "$pkg/control/prerm"
 
+	# apk 生命周期脚本（apk v2：放在 data 包根部，执行后不留存）
+	# 参数语义与 opkg 不同，不依赖 $1
+	cat > "$pkg/data/.post-install" <<'EOF'
+#!/bin/sh
+rm -rf /tmp/luci-indexcache /tmp/luci-modulecache 2>/dev/null
+/etc/init.d/rpcd reload 2>/dev/null
+/etc/init.d/tailscale enabled 2>/dev/null && /etc/init.d/tailscale start >/dev/null 2>&1 &
+exit 0
+EOF
+	cat > "$pkg/data/.post-upgrade" <<'EOF'
+#!/bin/sh
+rm -rf /tmp/luci-indexcache /tmp/luci-modulecache 2>/dev/null
+/etc/init.d/rpcd reload 2>/dev/null
+/etc/init.d/tailscale enabled 2>/dev/null && /etc/init.d/tailscale start >/dev/null 2>&1 &
+exit 0
+EOF
+	cat > "$pkg/data/.pre-upgrade" <<'EOF'
+#!/bin/sh
+/etc/init.d/tailscale stop >/dev/null 2>&1
+exit 0
+EOF
+	cat > "$pkg/data/.pre-deinstall" <<'EOF'
+#!/bin/sh
+/etc/init.d/tailscale stop 2>/dev/null
+/etc/init.d/tailscale disable 2>/dev/null
+rm -rf /tmp/luci-indexcache /tmp/luci-modulecache 2>/dev/null
+exit 0
+EOF
+	chmod 755 "$pkg/data/".post-install "$pkg/data/".post-upgrade \
+		"$pkg/data/".pre-upgrade "$pkg/data/".pre-deinstall
+
 	pack_ipk "$pkg" "$DIST/tailscale-luci_${TS_VER}-${TS_REL}_${owrt_arch}.ipk"
+	pack_apk "$pkg" "$DIST/tailscale-luci_${TS_VER}-${TS_REL}_${owrt_arch}.apk"
 done
 
 rm -rf "$DIST"/pkg-* "$LUCI_STAGE"

@@ -15,25 +15,29 @@ OpenWrt 的 Tailscale 一体化管理包：合并二进制 + LuCI 管理界面 +
 
 ## 安装
 
-在 [Releases](https://github.com/wubin0532/tailscale/releases) 下载对应架构的单包：
+在 [Releases](https://github.com/wubin0532/tailscale/releases) 下载对应架构和系统版本的安装包：
+
+- **OpenWrt 22.03 – 23.05**（opkg）：`opkg install tailscale-luci_1.102.2-7_<架构>.ipk`
+- **OpenWrt 24.10 / 25.x**（apk）：`apk add --allow-untrusted tailscale-luci_1.102.2-7_<架构>.apk`
+
+安装后执行：
 
 ```sh
-opkg install tailscale-luci_1.102.2-3_<架构>.ipk
 /etc/init.d/rpcd restart
 ```
 
-| ipk 架构 | 适用 |
+| 架构 | 适用 |
 |---|---|
 | aarch64_cortex-a53 | 64 位 ARM 路由器 |
 | arm_cortex-a7 | 32 位 ARM 路由器 |
 | mipsel_24kc | MT7621 等 mipsel 设备 |
 | x86_64 | x86 软路由 |
 
-若已安装官方 tailscale 包导致冲突：先 `opkg remove tailscale`（或加 `--force-overwrite`）。
+若已安装官方 tailscale 包导致冲突：安装前先卸载官方包（opkg 系统 `opkg remove tailscale`，apk 系统 `apk del tailscale`）。
 
 ## 要求
 
-- OpenWrt 22.03+（fw4）
+- OpenWrt 22.03+（fw4）；ipk 用于 opkg 系统（≤23.05），apk 用于 apk 系统（24.10+）
 - 二进制为合并二进制 extra-small 构建 + UPX 压缩（~6.6–8.2MB），RAM < 64MB 的设备请谨慎使用
 
 ## 从源码构建
@@ -51,7 +55,7 @@ make package/luci-app-tailscale/compile V=s
 
 ### 方式二：本机直编（无需 SDK）
 
-`build-ipk.sh` 直接用本机 Go 交叉编译二进制 + UPX 压缩 + 手工组装 ipk：
+`build-ipk.sh` 直接用本机 Go 交叉编译二进制 + UPX 压缩 + 手工组装安装包，每个架构同时产出 opkg 用的 `.ipk` 和 apk 用的 `.apk`：
 
 ```sh
 ./build-ipk.sh   # 产物在 dist/
