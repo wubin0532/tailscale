@@ -118,5 +118,36 @@ chmod 755 "$pkg/control/postinst" "$pkg/control/prerm"
 
 pack_ipk "$pkg" "$DIST/luci-app-tailscale_${LUCI_VER}-${LUCI_REL}_all.ipk"
 
+# ---------- 单包合并版：tailscale 二进制 + LuCI 界面 ----------
+for pair in "${ARCHES[@]}"; do
+	owrt_arch="${pair%%:*}"
+	ts_pkg="$DIST/pkg-tailscale-$owrt_arch"
+	pkg="$DIST/pkg-full-$owrt_arch"
+	mkdir -p "$pkg/data" "$pkg/control"
+
+	cp -a "$ts_pkg/data/." "$pkg/data/"
+	cp -a "$DIST/pkg-luci-app-tailscale/data/." "$pkg/data/"
+
+	size=$(du -sk "$pkg/data" | cut -f1)
+	cat > "$pkg/control/control" <<EOF
+Package: tailscale-luci
+Version: $TS_VER-$TS_REL
+Architecture: $owrt_arch
+Maintainer: wubin0532
+Section: net
+Installed-Size: $size
+Depends: luci-base, rpcd, ca-bundle, kmod-tun
+Conflicts: tailscale, luci-app-tailscale
+Description: Tailscale all-in-one package: combined binary (UPX compressed),
+ procd service, UCI config and LuCI web interface with automatic firewall setup.
+EOF
+
+	cp "$DIST/pkg-luci-app-tailscale/control/conffiles" "$pkg/control/conffiles"
+	cp "$DIST/pkg-luci-app-tailscale/control/postinst" "$pkg/control/postinst"
+	cp "$DIST/pkg-luci-app-tailscale/control/prerm" "$pkg/control/prerm"
+
+	pack_ipk "$pkg" "$DIST/tailscale-luci_${TS_VER}-${TS_REL}_${owrt_arch}.ipk"
+done
+
 rm -rf "$DIST"/pkg-*
 ls -la "$DIST"
