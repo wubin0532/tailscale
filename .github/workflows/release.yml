@@ -43,7 +43,7 @@ jobs:
             name="${pair%%:*}"; goarch="${pair##*:}"
             extra=""; [ "$goarch" = arm ] && extra="GOARM=7"
             echo "=== building linux/$goarch ==="
-            env GOOS=linux GOARCH=$goarch $extra GOFLAGS=-mod=mod \
+            env GOOS=linux GOARCH=$goarch $extra GOFLAGS=-mod=mod CGO_ENABLED=0 \
               go build -C /tmp/ts -tags "$TAGS" -ldflags "$LDFLAGS" \
               -o "$PWD/build/bin/upx/tailscaled-linux-$name" ./cmd/tailscaled
           done
