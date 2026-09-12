@@ -38,7 +38,7 @@ jobs:
           git clone --depth 1 --branch "v$TS_VER" https://github.com/tailscale/tailscale.git /tmp/ts
           mkdir -p build/bin/upx
           TAGS="ts_include_cli,ts_omit_aws,ts_omit_bird,ts_omit_completion,ts_omit_kube,ts_omit_systray,ts_omit_taildrop,ts_omit_tap,ts_omit_tpm,ts_omit_acme,ts_omit_connectivity_control,ts_omit_debugeventbus,ts_omit_debugportmapper,ts_omit_desktop_sessions,ts_omit_drive,ts_omit_kubernetes,ts_omit_oauthkey,ts_omit_outboundproxy,ts_omit_posture"
-          LDFLAGS="-s -w -X tailscale.com/version.longStamp=$TS_VER (OpenWrt) -X tailscale.com/version.shortStamp=$TS_VER"
+          LDFLAGS="-s -w -X \"tailscale.com/version.longStamp=$TS_VER (OpenWrt)\" -X tailscale.com/version.shortStamp=$TS_VER"
           for pair in arm64:arm64 armv7:armv7 mipsle:mipsle amd64:amd64; do
             name="${pair%%:*}"; goarch="${pair##*:}"
             extra=""; [ "$goarch" = armv7 ] && extra="GOARM=7"
