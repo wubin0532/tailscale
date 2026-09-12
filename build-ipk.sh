@@ -30,37 +30,41 @@ pack_ipk() { # $1=pkg dir (含 data/ control/ ), $2=output
 	echo "built: $out"
 }
 
-pack_apk() { # $1=pkg dir (含 data/ 与 control/control 元数据), $2=output
-	# apk v2 格式：gzip tar，成员为 .PKGINFO + data.tar.gz
-	# data.tar.gz 由 pack_ipk 生成，这里直接复用；data/ 根部的
-	# .post-install 等脚本由 apk 执行后丢弃，不会留在文件系统上
+pack_apk() { # $1=pkg dir (含 data/ control/ scripts/), $2=output
+	# apk v3 格式（apk-tools 3 mkpkg，OpenWrt 24.10+/25.x 唯一可装的格式）
+	# 需要 APK_MKPKG 指向带 mkpkg applet 的 apk-tools 3 二进制；
+	# 非 root 构建时文件属主会落为 nobody（target 上回退 uid 65534），
+	# CI 以 root 构建则记录为 root
 	local dir="$1" out="$2"
-	local size
-	size=$(($(du -sk "$dir/data" | cut -f1) * 1024))
-
-	local pkgver pkgdesc url
+	local name pkgver pkgdesc url maintainer depends
+	name=$(sed -n 's/^Package: //p' "$dir/control/control")
 	pkgver=$(sed -n 's/^Version: //p' "$dir/control/control")
-	pkgdesc=$(sed -n 's/^Description: //p' "$dir/control/control" | tr '\n' ' ')
+	# apk 版本要求 revision 为 -rN 形式（opkg 的 -N 不行）
+	pkgver=$(printf '%s' "$pkgver" | sed 's/-\([0-9][0-9]*\)$/-r\1/')
+	pkgdesc=$(sed -n 's/^Description: //p' "$dir/control/control" | tr '\n' ' ' | sed 's/ *$//')
 	url=$(sed -n 's/^URL: //p' "$dir/control/control")
+	maintainer=$(sed -n 's/^Maintainer: //p' "$dir/control/control")
+	depends=$(sed -n 's/^Depends: //p' "$dir/control/control" | tr ',' ' ')
+	# v3 无 conflicts 字段，用 depends 里的 !name 表达冲突
+	for c in $(sed -n 's/^Conflicts: //p' "$dir/control/control" | tr ',' ' '); do
+		depends="$depends !$c"
+	done
 
-	cat > "$dir/.PKGINFO" <<EOF
-# apk v2
-pkgname = tailscale-luci
-pkgver = $pkgver
-pkgdesc = $pkgdesc
-url = $url
-builddate = $(date +%s)
-packager = wubin0532
-size = $size
-arch = $owrt_arch
-origin = tailscale-luci
-EOF
-	sed -n 's/^Depends: //p'   "$dir/control/control" |
-		tr ',' '\n' | sed 's/^ *//; s/^/depend = /' >> "$dir/.PKGINFO"
-	sed -n 's/^Conflicts: //p' "$dir/control/control" |
-		tr ',' '\n' | sed 's/^ *//; s/^/conflicts = /' >> "$dir/.PKGINFO"
-
-	( cd "$dir" && tar --format=$TARFORMAT $TAROWNER -czf "$out" ./.PKGINFO ./data.tar.gz )
+	"$APK_MKPKG" mkpkg \
+		--info "name:$name" \
+		--info "version:$pkgver" \
+		--info "description:$pkgdesc" \
+		--info "arch:$owrt_arch" \
+		--info "url:$url" \
+		--info "maintainer:$maintainer" \
+		--info "origin:$name" \
+		--info "depends:$depends" \
+		--script "post-install:$dir/scripts/post-install" \
+		--script "post-upgrade:$dir/scripts/post-install" \
+		--script "pre-upgrade:$dir/scripts/pre-upgrade" \
+		--script "pre-deinstall:$dir/scripts/pre-deinstall" \
+		--files "$dir/data" \
+		--output "$out"
 	echo "built: $out"
 }
 
@@ -157,39 +161,36 @@ exit 0
 EOF
 	chmod 755 "$pkg/control/postinst" "$pkg/control/prerm"
 
-	# apk 生命周期脚本（apk v2：放在 data 包根部，执行后不留存）
+	# apk 生命周期脚本（apk v3：经 mkpkg --script 嵌入包内）
 	# 参数语义与 opkg 不同，不依赖 $1
-	cat > "$pkg/data/.post-install" <<'EOF'
+	mkdir -p "$pkg/scripts"
+	cat > "$pkg/scripts/post-install" <<'EOF'
 #!/bin/sh
 rm -rf /tmp/luci-indexcache /tmp/luci-modulecache 2>/dev/null
 /etc/init.d/rpcd reload 2>/dev/null
 /etc/init.d/tailscale enabled 2>/dev/null && /etc/init.d/tailscale start >/dev/null 2>&1 &
 exit 0
 EOF
-	cat > "$pkg/data/.post-upgrade" <<'EOF'
-#!/bin/sh
-rm -rf /tmp/luci-indexcache /tmp/luci-modulecache 2>/dev/null
-/etc/init.d/rpcd reload 2>/dev/null
-/etc/init.d/tailscale enabled 2>/dev/null && /etc/init.d/tailscale start >/dev/null 2>&1 &
-exit 0
-EOF
-	cat > "$pkg/data/.pre-upgrade" <<'EOF'
+	cat > "$pkg/scripts/pre-upgrade" <<'EOF'
 #!/bin/sh
 /etc/init.d/tailscale stop >/dev/null 2>&1
 exit 0
 EOF
-	cat > "$pkg/data/.pre-deinstall" <<'EOF'
+	cat > "$pkg/scripts/pre-deinstall" <<'EOF'
 #!/bin/sh
 /etc/init.d/tailscale stop 2>/dev/null
 /etc/init.d/tailscale disable 2>/dev/null
 rm -rf /tmp/luci-indexcache /tmp/luci-modulecache 2>/dev/null
 exit 0
 EOF
-	chmod 755 "$pkg/data/".post-install "$pkg/data/".post-upgrade \
-		"$pkg/data/".pre-upgrade "$pkg/data/".pre-deinstall
+	chmod 755 "$pkg/scripts/"*
 
+	if [ -n "$APK_MKPKG" ]; then
+		pack_apk "$pkg" "$DIST/tailscale-luci_${TS_VER}-${TS_REL}_${owrt_arch}.apk"
+	else
+		echo "warn: APK_MKPKG 未设置，跳过 apk 生成（仅生成 ipk）" >&2
+	fi
 	pack_ipk "$pkg" "$DIST/tailscale-luci_${TS_VER}-${TS_REL}_${owrt_arch}.ipk"
-	pack_apk "$pkg" "$DIST/tailscale-luci_${TS_VER}-${TS_REL}_${owrt_arch}.apk"
 done
 
 rm -rf "$DIST"/pkg-* "$LUCI_STAGE"
