@@ -11,7 +11,7 @@ OpenWrt 的 Tailscale 一体化管理包：合并二进制 + LuCI 管理界面 +
 - **出口节点**：作为出口节点供他人使用 / 使用其他出口节点
 - **防火墙自动设置**：自动创建 tailscale 防火墙 zone（fw4）+ LAN 双向转发 + 入站端口白名单，幂等且只清理自身创建的规则
 - **中英双语**：界面语言随 LuCI 系统语言自动切换
-- **自定义深色主题**：Mesh 控制台风格 UI
+- **原生主题**：跟随 LuCI 系统主题（Argon 等）
 
 ## 安装
 
@@ -67,7 +67,6 @@ make package/luci-app-tailscale/compile V=s
 tailscale/                        # SDK 用二进制包定义（Makefile/Config.in）
 luci-app-tailscale/
 ├── htdocs/luci-static/resources/
-│   ├── tailscale/style.css       # 设计系统（深色 mesh 主题）
 │   ├── tailscale/qrcode.min.js   # 二维码库（vendor）
 │   └── view/tailscale/           # status / peers / log / settings 视图
 ├── po/zh_Hans/tailscale.po       # 中文翻译（英文为默认 msgid）

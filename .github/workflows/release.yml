@@ -58,7 +58,7 @@ jobs:
           echo "APK_MKPKG=/tmp/apk-tools/b/src/apk" >> "$GITHUB_ENV"
 
       - name: Assemble ipk + apk packages
-        run: ./build-ipk.sh
+        run: sudo apt-get install -y -qq fakeroot && fakeroot ./build-ipk.sh
 
       - name: Upload build artifacts (workflow_dispatch only)
         if: github.event_name == 'workflow_dispatch'
