@@ -14,17 +14,19 @@ mkdir -p "$DIST"
 # GNU tar 用 gnu，bsdtar（macOS）用 gnutar，两者都生成无 PAX 头的 tar
 if tar --format=gnutar -cf /dev/null /dev/null 2>/dev/null; then
 	TARFORMAT=gnutar
+	TAROWNER="--uid=0 --gid=0"
 else
 	TARFORMAT=gnu
+	TAROWNER="--owner=0 --group=0 --numeric-owner"
 fi
 
 pack_ipk() { # $1=pkg dir (含 data/ control/ ), $2=output
 	local dir="$1" out="$2"
 	# gnutar 格式：避免 macOS bsdtar 生成 busybox tar 不认识的 PAX 扩展头
-	( cd "$dir/data"    && tar --format=$TARFORMAT --uid=0 --gid=0 --numeric-owner -czf "$dir/data.tar.gz" . )
-	( cd "$dir/control" && tar --format=$TARFORMAT --uid=0 --gid=0 --numeric-owner -czf "$dir/control.tar.gz" . )
+	( cd "$dir/data"    && tar --format=$TARFORMAT $TAROWNER -czf "$dir/data.tar.gz" . )
+	( cd "$dir/control" && tar --format=$TARFORMAT $TAROWNER -czf "$dir/control.tar.gz" . )
 	echo "2.0" > "$dir/debian-binary"
-	( cd "$dir" && tar --format=$TARFORMAT --uid=0 --gid=0 --numeric-owner -czf "$out" ./debian-binary ./control.tar.gz ./data.tar.gz )
+	( cd "$dir" && tar --format=$TARFORMAT $TAROWNER -czf "$out" ./debian-binary ./control.tar.gz ./data.tar.gz )
 	echo "built: $out"
 }
 
@@ -58,7 +60,7 @@ EOF
 	sed -n 's/^Conflicts: //p' "$dir/control/control" |
 		tr ',' '\n' | sed 's/^ *//; s/^/conflicts = /' >> "$dir/.PKGINFO"
 
-	( cd "$dir" && tar --format=$TARFORMAT --uid=0 --gid=0 --numeric-owner -czf "$out" ./.PKGINFO ./data.tar.gz )
+	( cd "$dir" && tar --format=$TARFORMAT $TAROWNER -czf "$out" ./.PKGINFO ./data.tar.gz )
 	echo "built: $out"
 }
 
