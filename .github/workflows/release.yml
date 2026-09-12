@@ -52,7 +52,7 @@ jobs:
       - name: Build apk-tools (mkpkg for apk v3 packages)
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq meson libssl-dev zlib1g-dev
-          git clone --depth 1 --branch v3.0.5 https://gitlab.alpinelinux.org/alpine/apk-tools.git /tmp/apk-tools
+          git clone --depth 1 --branch v3.0.5 https://github.com/alpinelinux/apk-tools.git /tmp/apk-tools
           meson setup /tmp/apk-tools/b -Ddocs=disabled -Dlua=disabled -Dtests=disabled -Dpython=disabled /tmp/apk-tools
           ninja -C /tmp/apk-tools/b src/apk
           echo "APK_MKPKG=/tmp/apk-tools/b/src/apk" >> "$GITHUB_ENV"
