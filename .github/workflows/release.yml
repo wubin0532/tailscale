@@ -27,8 +27,9 @@ jobs:
       - name: Build po2lmo (LuCI i18n)
         run: |
           git clone --depth 1 https://github.com/openwrt/luci.git /tmp/luci
+          make -C /tmp/luci/modules/luci-base/src po2lmo
           mkdir -p build
-          cc -O2 -o build/po2lmo /tmp/luci/modules/luci-base/src/po2lmo.c /tmp/luci/modules/luci-base/src/sfh_hash.c
+          cp /tmp/luci/modules/luci-base/src/po2lmo build/po2lmo
 
       - name: Build tailscaled binaries
         run: |
