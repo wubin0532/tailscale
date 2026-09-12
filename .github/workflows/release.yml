@@ -28,7 +28,7 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/openwrt/luci.git /tmp/luci
           mkdir -p build
-          cc -O2 -o build/po2lmo /tmp/luci/modules/luci-base/src/po2lmo.c
+          cc -O2 -o build/po2lmo /tmp/luci/modules/luci-base/src/po2lmo.c /tmp/luci/modules/luci-base/src/sfh_hash.c
 
       - name: Build tailscaled binaries
         run: |
