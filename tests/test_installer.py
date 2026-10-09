@@ -33,6 +33,12 @@ class RunHeaderTests(unittest.TestCase):
   target=self.base/'extract';target.symlink_to(self.base/'absent')
   self.assertNotEqual(self.command('--extract',target).returncode,0);self.assertFalse((self.base/'absent').exists())
  def test_unknown_option_does_not_extract(self):self.assertNotEqual(self.command('--erase').returncode,0)
+ def test_bad_disk_report_refuses_before_extraction(self):
+  bindir=self.base/'bin';write(bindir/'df',"#!/bin/sh\necho 'Filesystem 1024-blocks Used Available Capacity Mounted'\nexit 1\n",True)
+  target=self.base/'extract'
+  result=subprocess.run(['sh',str(self.run),'--extract',str(target)],text=True,capture_output=True,env={**os.environ,'PATH':str(bindir)+':'+os.environ['PATH']})
+  self.assertNotEqual(result.returncode,0);self.assertFalse(target.exists())
+  self.assertIn('Cannot determine temporary free space',result.stderr)
 
 class InstallerTransactionTests(unittest.TestCase):
  """Execute the real installer in a redirected filesystem with fake firmware services."""

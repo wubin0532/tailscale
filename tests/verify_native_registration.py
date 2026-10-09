@@ -34,7 +34,10 @@ def verify():
             p=router/path
             if not p.exists():os.mknod(p,0o20666,os.makedev(major,minor))
         def run(*args,success=True):
-            result=subprocess.run(['unshare','--mount','--pid','--fork','--net','--propagation','private','--mount-proc='+str(router/'proc'),'chroot',str(router),*args],text=True,capture_output=True,timeout=150)
+            # Make the chroot itself a mount point before mounting proc. BusyBox
+            # df needs this to resolve /tmp and /usr from /proc/mounts correctly.
+            mount_and_run='router=$1; shift; mount --bind "$router" "$router" && mount -t proc proc "$router/proc" && exec chroot "$router" "$@"'
+            result=subprocess.run(['unshare','--mount','--pid','--fork','--net','--propagation','private','/bin/sh','-c',mount_and_run,'native-fixture',str(router),*args],text=True,capture_output=True,timeout=150)
             if success:assert result.returncode==0,(args,result.stdout,result.stderr)
             return result
         def installed():return set(run('opkg','list-installed').stdout.splitlines())

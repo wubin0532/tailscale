@@ -10,6 +10,7 @@ case "$mode" in --help|-h)
 esac
 if [ "$mode" = --extract ]; then [ "$#" = 2 ] || exit 2; else [ "$#" -le 1 ] || exit 2; fi
 available=$(df -Pk /tmp | awk 'END {print $4}')
+case "$available" in ''|*[!0-9]*) echo 'Cannot determine temporary free space; nothing extracted.' >&2; exit 1;; esac
 [ "$available" -gt @TEMP_KB@ ] || { echo 'Not enough temporary space; nothing extracted.' >&2; exit 1; }
 work=$(mktemp -d /tmp/tailscale-run.XXXXXX)
 trap 'rm -rf "$work"' EXIT

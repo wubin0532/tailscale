@@ -47,6 +47,7 @@ fi
 # Ensure persistent storage can hold the new installation AND a recovery copy.
 needed=$(du -sk "$data" | awk '{print $1}')
 available=$(df -Pk /usr | awk 'END {print $4}')
+case "$available" in ''|*[!0-9]*) fail 'cannot determine persistent free space';; esac
 [ "$available" -gt "$((needed * 2 + 16384))" ] || fail 'not enough persistent free space for installation and rollback'
 backup=/root/tailscale-backup-v2/run-$version-$(date +%Y%m%d-%H%M%S)-$$
 mkdir -p "$backup"; chmod 700 "$backup"
