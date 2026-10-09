@@ -35,6 +35,7 @@ if [ "$mode" = --uninstall ] || [ "$mode" = --uninstall-keep-state ]; then
     uninstall_mode=--purge
     [ "$mode" != --uninstall-keep-state ] || uninstall_mode=--keep-state
     TS_UNINSTALL_RUNTIME=$work/data/usr/lib/tailscale-luci/runtime; export TS_UNINSTALL_RUNTIME
+    TS_UNINSTALL_CORE=$work/data/usr/sbin/tailscaled; export TS_UNINSTALL_CORE
     sh "$work/data/usr/lib/tailscale-luci-uninstall.sh" "$uninstall_mode"
     exit $?
 fi

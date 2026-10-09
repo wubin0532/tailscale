@@ -26,11 +26,11 @@ def verify():
         # The exact official archive is trusted only after its pinned SHA check.
         with tarfile.open(archive) as tar:tar.extractall(router,filter='fully_trusted')
         download(ISTORE_URL,ISTORE_SHA,router/'bin/is-opkg');(router/'bin/is-opkg').chmod(0o755)
-        for path in ['usr/share/luci','tmp/is-root/tmp','etc/tailscale','dev/net']:(router/path).mkdir(parents=True,exist_ok=True)
+        for path in ['usr/share/luci','tmp/is-root/tmp','tmp/lock','tmp/run','etc/tailscale','dev/net']:(router/path).mkdir(parents=True,exist_ok=True)
         # Rootfs does not boot in a chroot; preserve real package/UCI executables.
         for path in ['etc/init.d/firewall','etc/init.d/rpcd']:
             p=router/path;p.write_text('#!/bin/sh\nexit 0\n');p.chmod(0o755)
-        for path,major,minor in [('dev/null',1,3),('dev/net/tun',10,200)]:
+        for path,major,minor in [('dev/null',1,3),('dev/zero',1,5),('dev/random',1,8),('dev/urandom',1,9),('dev/net/tun',10,200)]:
             p=router/path
             if not p.exists():os.mknod(p,0o20666,os.makedev(major,minor))
         def run(*args,success=True):

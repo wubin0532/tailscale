@@ -113,5 +113,13 @@ exit 0
         calls=(self.root/'nft-calls').read_text().splitlines()
         self.assertEqual(len(calls),8)
         self.assertTrue(all(c.startswith('delete chain inet fw4 ') and c.endswith('tailscale') for c in calls))
+    def test_official_cleanup_runs_before_binary_removal(self):
+        write(self.root/'usr/sbin/tailscaled','#!/bin/sh\necho "$*" > "$FIXTURE_ROOT/core-cleanup"\n[ "$TS_BE_CLI" = false ]\n',True)
+        result=self.run_uninstall();self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual((self.root/'core-cleanup').read_text().strip(),'--cleanup --no-logs-no-support --tun=tailscale0')
+    def test_official_cleanup_failure_preserves_files(self):
+        write(self.root/'usr/sbin/tailscaled','#!/bin/sh\nexit 8\n',True)
+        result=self.run_uninstall();self.assertNotEqual(result.returncode,0)
+        self.assertTrue((self.root/'usr/sbin/tailscaled').exists())
 
 if __name__=='__main__':unittest.main()

@@ -124,6 +124,13 @@ while pidof tailscaled >/dev/null 2>&1; do
     [ "$elapsed" -lt 10 ] || fail 'tailscaled is still running; files retained'
     sleep 1; elapsed=$((elapsed + 1))
 done
+core=/usr/sbin/tailscaled
+[ -x "$core" ] || core=${TS_UNINSTALL_CORE:-}
+if [ -n "$core" ] && [ -x "$core" ]; then
+    # Upstream cleanup restores DNS and removes its own nftables/iptables state,
+    # including remnants after a daemon crash. It does not start a new daemon.
+    timed env TS_BE_CLI=false PATH="/usr/lib/tailscale-luci/runtime/bin:$PATH" "$core" --cleanup --no-logs-no-support --tun=tailscale0 || fail 'official core cleanup failed; files retained'
+fi
 if [ -x /etc/init.d/tailscale ]; then timed /etc/init.d/tailscale disable >/dev/null 2>&1 || true; fi
 for link in /etc/rc.d/*tailscale /etc/rc.d/*tailscaler; do
     [ ! -L "$link" ] || rm -f "$link"

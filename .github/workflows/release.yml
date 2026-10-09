@@ -39,8 +39,24 @@ jobs:
           echo '402162aad30af47e60dbd767fb2e64ca394ace9727ba1f40283641f1d1b91657  /tmp/upx.tar.xz' | sha256sum -c -
           tar -xJf /tmp/upx.tar.xz -C /tmp
           echo "UPX_BIN=/tmp/upx-5.2.1-amd64_linux/upx" >> "$GITHUB_ENV"
+      - name: Restore pinned core build cache
+        id: core-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            build/combined
+            build/source
+          key: tailscale-core-${{ runner.os }}-${{ hashFiles('core-version.env', 'prepare-core.sh') }}
       - name: Build full-feature combined core and offline installers
         run: ./build-run.sh
+      - name: Save verified core build cache
+        if: steps.core-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            build/combined
+            build/source
+          key: tailscale-core-${{ runner.os }}-${{ hashFiles('core-version.env', 'prepare-core.sh') }}
       - name: Verify payloads and executable dependencies
         run: python3 tests/verify_run.py --execute
       - name: Verify native OpenWrt opkg and iStore install and uninstall
