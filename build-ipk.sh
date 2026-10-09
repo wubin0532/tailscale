@@ -5,8 +5,10 @@ set -e
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 DIST="$ROOT/dist"
-TS_VER=1.102.2
-TS_REL=10
+. "$ROOT/core-version.env"
+TS_VER=$APP_VERSION
+TS_REL=$APP_RELEASE
+"$ROOT/prepare-core.sh"
 
 # Keep previous release packages available for rollback.
 mkdir -p "$DIST"
@@ -88,7 +90,7 @@ LUCI_STAGE="$DIST/stage-luci"
 mkdir -p "$LUCI_STAGE"
 
 # root 目录（UCI 配置、init 脚本、rpcd 后端、menu/acl）
-( cd "$ROOT/luci-app-tailscale/root" && find . -name .DS_Store -delete; tar -cf - . ) | ( cd "$LUCI_STAGE" && tar -xf - )
+( cd "$ROOT/luci-app-tailscale/root" && tar --exclude=.DS_Store -cf - . ) | ( cd "$LUCI_STAGE" && tar -xf - )
 # 全部静态资源（视图 JS、样式、二维码库）→ /www
 mkdir -p "$LUCI_STAGE/www/luci-static/resources"
 ( cd "$ROOT/luci-app-tailscale/htdocs/luci-static/resources" && tar -cf - . ) | \
@@ -112,9 +114,11 @@ for pair in "${ARCHES[@]}"; do
 	mkdir -p "$pkg/data/usr/sbin" "$pkg/data/etc/tailscale" "$pkg/control"
 
 	# UPX 压缩后的二进制
-	cp "$ROOT/build/bin/upx/tailscaled-linux-$go_arch" "$pkg/data/usr/sbin/tailscaled"
-	chmod 755 "$pkg/data/usr/sbin/tailscaled"
-	ln -sf tailscaled "$pkg/data/usr/sbin/tailscale"
+	official_arch=$go_arch
+	[ "$go_arch" != armv7 ] || official_arch=arm
+	cp "$ROOT/build/packed/$official_arch/tailscaled" "$pkg/data/usr/sbin/tailscaled"
+	cp "$ROOT/build/packed/$official_arch/tailscale" "$pkg/data/usr/sbin/tailscale"
+	chmod 755 "$pkg/data/usr/sbin/tailscaled" "$pkg/data/usr/sbin/tailscale"
 
 	cp -a "$LUCI_STAGE/." "$pkg/data/"
 
@@ -127,9 +131,9 @@ Maintainer: wubin0532
 Section: net
 URL: https://github.com/wubin0532/tailscale
 Installed-Size: $size
-Depends: luci-base, rpcd, ca-bundle, kmod-tun, jsonfilter, ip-full
+Depends: luci-base, rpcd, ca-bundle, kmod-tun, jsonfilter, ip-full, curl, flock
 Conflicts: tailscale, luci-app-tailscale
-Description: Tailscale all-in-one package: combined binary (UPX compressed, Tailscale SSH enabled), procd service, UCI config and LuCI web interface with peers list, logs, exit node and automatic firewall setup.
+Description: Tailscale all-in-one package: UPX-compressed official binaries, procd service, UCI config and LuCI web interface with peers list, logs, exit node and automatic firewall setup.
 EOF
 
 	cat > "$pkg/control/conffiles" <<EOF
@@ -190,7 +194,7 @@ EOF
 	chmod 755 "$pkg/scripts/"*
 
 	if [ -n "$APK_MKPKG" ]; then
-		pack_apk "$pkg" "$DIST/tailscale-luci_${TS_VER}-${TS_REL}_${owrt_arch}.apk"
+		pack_apk "$pkg" "$DIST/tailscale-luci_${TS_VER}-r${TS_REL}_${owrt_arch}.apk"
 	else
 		echo "warn: APK_MKPKG 未设置，跳过 apk 生成（仅生成 ipk）" >&2
 	fi
@@ -198,4 +202,5 @@ EOF
 done
 
 rm -rf "$DIST"/pkg-* "$LUCI_STAGE"
+( cd "$DIST"; shopt -s nullglob; packages=( tailscale-luci_${TS_VER}-${TS_REL}_*.ipk tailscale-luci_${TS_VER}-r${TS_REL}_*.apk ); shasum -a 256 "${packages[@]}" > SHA256SUMS-v2.0.txt )
 ls -la "$DIST"

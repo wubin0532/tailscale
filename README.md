@@ -1,97 +1,65 @@
-# tailscale-luci
+# Tailscale LuCI v2.0
 
-OpenWrt 的 Tailscale 一体化管理包：合并二进制 + LuCI 管理界面 + 防火墙自动设置，单 ipk 安装。
+OpenWrt 的 Tailscale 管理插件，包含经 UPX 压缩的官方独立 `tailscale`、`tailscaled` 二进制和 LuCI 界面。插件版本 `v2.0`，IPK 版本 `2.0.0-1`，APK 版本 `2.0.0-r1`；核心独立显示为 `1.104.1`。
 
 ## 功能
 
-- **服务状态**：仪表盘式状态页（运行状态、当前节点、Tailscale IP、已绑定用户、公开网段），二维码扫码登录，节点密钥过期提醒，连接质量检测（netcheck）
-- **节点列表**：tailnet 内全部设备（在线状态、直连/中继、最后在线时间、逐节点 ping 检测）
-- **运行日志**：实时滚动查看 tailscaled 日志
-- **全局设置**：允许组网、设备名称、公开网段（一键填入 LAN 网段）、认证密钥、Headscale 自建控制服务器、Tailscale SSH
-- **出口节点**：作为出口节点供他人使用 / 使用其他出口节点
-- **防火墙自动设置**：自动创建 tailscale 防火墙 zone（fw4）+ 独立控制 LAN → Tailscale 与 Tailscale → LAN 转发 + 入站端口白名单，幂等且只清理自身创建的规则
-- **中英双语**：界面语言随 LuCI 系统语言自动切换
-- **原生主题**：跟随 LuCI 系统主题（Argon 等）
+- 状态卡片区分进程运行、登录授权、控制连接、请求失败和过期数据；提供扫码登录、连接检测及独立的身份清理区。
+- 设备页显示核心实际返回的在线和离线节点，支持搜索、在线筛选。检测结果按稳定节点 ID 保存，刷新不会吞掉正在执行的 Ping 或结果。
+- 设置按连接与子网、网络与防火墙、高级设置分组，配置项与说明直接展开。四页采用统一宽度的轻量卡片布局，跟随 LuCI 浅色、深色主题；重要操作以颜色和文字区分，手机上设备表格改为卡片。
+- 日志支持暂停、继续、筛选、复制和自动跟随；刷新失败保留旧内容。HTTP 页面没有剪贴板权限时可选中文本复制。
+- 状态查询通过 Unix socket LocalAPI，页面和路由保护共享最长 5 秒的私有快照，常规查询不启动 Go CLI。锁由内核 `flock` 管理，进程异常退出后自动释放。
+- 接收远程子网前检查 IPv4/IPv6 直连网段冲突，并每 5 秒复查；过期或正在刷新的数据不能用于确认路由安全。冲突会关闭实际路由接收并反馈错误，处理冲突后重新应用。
+
+设备列表受核心和访问策略限制，不能保证看到整个 tailnet。核心没有返回的节点不会由界面虚构。
 
 ## 安装
 
-在 [Releases](https://github.com/wubin0532/tailscale/releases) 下载对应架构和系统版本的安装包：
-
-- **使用 opkg 的固件**：`opkg install tailscale-luci_1.102.2-10_<架构>.ipk`
-- **使用 apk 的固件**：`apk add --allow-untrusted tailscale-luci_1.102.2-10_<架构>.apk`
-
-安装后执行：
+从 [GitHub Releases](https://github.com/wubin0532/tailscale/releases) 下载与固件架构、包管理器相符的文件，先对照 `SHA256SUMS-v2.0.txt` 校验。
 
 ```sh
+# 使用 opkg 的固件
+opkg install ./tailscale-luci_2.0.0-1_aarch64_cortex-a53.ipk
+# 使用 apk 的固件（apk v3）
+apk add --allow-untrusted ./tailscale-luci_2.0.0-r1_aarch64_cortex-a53.apk
 /etc/init.d/rpcd restart
 ```
 
-| 架构 | 适用 |
+| 包架构 | 官方核心架构 |
 |---|---|
-| aarch64_cortex-a53 | 64 位 ARM 路由器 |
-| arm_cortex-a7 | 32 位 ARM 路由器 |
-| mipsel_24kc | MT7621 等 mipsel 设备 |
-| x86_64 | x86 软路由 |
+| aarch64_cortex-a53 | arm64 |
+| arm_cortex-a7 | arm |
+| mipsel_24kc | mipsle |
+| x86_64 | amd64 |
 
-若已安装官方 tailscale 包导致冲突：安装前先卸载官方包（opkg 系统 `opkg remove tailscale`，apk 系统 `apk del tailscale`）。
+要求 fw4 固件，以及 `luci-base`、`rpcd`、`ca-bundle`、`kmod-tun`、`jsonfilter`、`ip-full`、`curl`、`flock`。按固件实际包管理器选择 IPK/APK。已有官方 `tailscale` 包时先备份配置和身份，再处理包冲突。
 
-## 要求
+本版直接使用[官方稳定下载](https://pkgs.tailscale.com/stable/)的原始二进制，不做精简编译；再用 UPX 5.2.1 压缩以节约路由器存储，每份压缩文件均验证解压内容与官方文件一致。升级前确认剩余存储。保留官方默认内存参数，不把 VSZ 当实际内存。
 
-- OpenWrt 22.03+（fw4）；按固件实际包管理器选择 ipk（opkg）或 apk；不能仅凭版本号判断
-- 二进制为合并二进制 extra-small 构建 + UPX 压缩（~6.6–8.2MB），RAM < 64MB 的设备请谨慎使用
+升级前将 `/etc/config/tailscale`、`/etc/config/firewall`、`/etc/tailscale` 和旧包备份到 root 专用目录。普通升级保留身份；“身份与配置清理”会删除登录状态，需重新授权。
 
-## 从源码构建
+## 办公室访问家庭与 VPS
 
-### 方式一：OpenWrt SDK（交叉编译完整固件包）
+1. 家庭路由器发布家庭网段，例如 `192.168.199.0/24`，在 Tailscale 管理后台批准。
+2. 办公室路由器开启“访问远程内网”，避免远程路由与办公室 LAN 重叠。只访问家庭时不必发布办公室网段，也不必配置互联网出口节点。
+3. VPS 加入同一个 tailnet，允许对应访问策略和主机服务端口，然后通过 VPS 的 `100.x.x.x` 地址访问。访问 VPS 本机不需要发布子网。
 
-```sh
-echo "src-link tailscale_feed /path/to/this/repo" >> feeds.conf.default
-./scripts/feeds update tailscale_feed
-./scripts/feeds install -a -p tailscale_feed
-make menuconfig   # Network -> VPN -> tailscale；LuCI -> Applications -> luci-app-tailscale
-make package/tailscale/compile V=s
-make package/luci-app-tailscale/compile V=s
-```
+自动防火墙默认输入 **REJECT**、输出 **ACCEPT**、区域内转发 **REJECT**；默认 LAN → Tailscale 开启，Tailscale → LAN 关闭。仅管理带 `ts_auto=1` 的规则，保留手动规则；更新失败尝试恢复原配置。
 
-### 方式二：本机直编（无需 SDK）
+NAT 限制默认留空。例如源地址可填办公室 `192.168.123.0/24`；目标限制若只填写家庭网段，还要添加 VPS 的 `100.x.x.x/32` 才能同时对 VPS 做 NAT。NAT 限制仅选择做地址转换的流量，不授予访问权限，也不能代替访问控制。不要把源网段、公开网段和目标地址混填。
 
-`build-ipk.sh` 直接用本机 Go 交叉编译二进制 + UPX 压缩 + 手工组装安装包，每个架构产出 opkg 用的 `.ipk`；设置 `APK_MKPKG` 指向 apk-tools 3 后也产出 `.apk`：
+## 构建与验证
 
-```sh
-./build-ipk.sh   # 产物在 dist/
-```
-
-## 目录结构
-
-```
-tailscale/                        # SDK 用二进制包定义（Makefile/Config.in）
-luci-app-tailscale/
-├── htdocs/luci-static/resources/
-│   ├── tailscale/qrcode.min.js   # 二维码库（vendor）
-│   └── view/tailscale/           # status / peers / log / settings 视图
-├── po/zh_Hans/tailscale.po       # 中文翻译（英文为默认 msgid）
-└── root/
-    ├── etc/config/tailscale      # UCI 配置
-    ├── etc/init.d/tailscale      # procd 服务（含防火墙自动配置）
-    ├── usr/libexec/rpcd/tailscale  # rpcd 后端（status/log/netcheck/ping/logout）
-    └── usr/share/{luci/menu.d,rpcd/acl.d}/  # 菜单与权限注册
-```
-
-## v1.2.3 修复与默认设置
-
-- 配置通过 `tailscale set` 更新；保留登录身份和插件未管理的 DNS、netfilter 等偏好。CLI 错误、等待超时、操作忙和防火墙失败会显示在页面；控制连接与进程运行状态分开显示，控制/DNS 恢复后自动重试配置。
-- 校验公开网段的 IPv4/IPv6 网络地址，禁止 `192.168.123.1/24` 这类带主机位的网段；出口节点填写 Tailscale IP 或设备名。
-- 接受远程子网前检查其是否与本机 IPv4/IPv6 直连网络重叠；后台每 5 秒复查。检测到冲突会关闭实际接受路由并显示错误。移除冲突后重新保存应用；检查间隔内仍可能短暂出现冲突。
-- 自动防火墙默认输入 **REJECT**、输出 **ACCEPT**、区域内转发 **REJECT**；默认仅允许 LAN → Tailscale，Tailscale → LAN 默认关闭。升级旧版自动区域会迁移到这些默认策略；手动管理的区域保持原样。
-- NAT 源、目标限制默认留空。办公室访问家庭时可填：源 `192.168.123.0/24`、目标 `192.168.199.0/24`。留空表示不限制；这两个列表限制 NAT，并不授予转发权限。自动防火墙只重建 `ts_auto=1` 的规则，更新失败尝试恢复原配置。
-- 修复启停设置未提交、注销失败误报成功、节点 Ping 按钮异常、登录窗口关闭后无法重开、升级浏览器缓存旧视图等问题。
-
-### 验证与发布
+`core-version.env` 固定插件及核心版本，`official-sha256.txt` 固定四种架构官方归档的 SHA-256。`fetch-core.sh` 下载并校验归档，`prepare-core.sh` 使用固定 UPX 压缩并验证可逆性，每次复用缓存仍检查校验和。`build-ipk.sh` 安装两份 UPX 压缩核心；APK 使用 apk-tools 3，非 root 构建须使用 fakeroot。
 
 ```sh
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 node tests/test_views.js
+./fetch-core.sh
+# 先构建 LuCI po2lmo，并放到 build/po2lmo
 ./build-ipk.sh
+# Linux 上构建全部 IPK/APK
+APK_MKPKG=/path/to/apk-tools-3 fakeroot ./build-ipk.sh
 ```
 
-升级前在路由器本机备份 `/etc/config/tailscale`、`/etc/config/firewall`、`/etc/tailscale` 和旧安装包，备份目录应仅允许 root 访问。不要删除状态文件或注销已登录节点。GitHub 标签构建生成草稿发布；确认真机验证及构建通过后再公开发布。
+SDK 构建主机须提供 UPX 5.2.1（可通过 `HOST_UPX` 指定路径）。SDK 编译使用 `tailscale/Makefile` 和 `luci-app-tailscale/Makefile`，同样下载固定官方归档。GitHub Actions 的手工构建生成候选产物，标签构建只创建草稿；实机通过后再公开发布。ARM64 IPK 的实测范围与其它架构/APK 的构建验证分开记录，见 [v2.0 验证记录](docs/validation-v2.0.md)。

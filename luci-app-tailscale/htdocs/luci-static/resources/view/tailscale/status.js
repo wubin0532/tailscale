@@ -4,6 +4,7 @@
 'require uci';
 'require ui';
 'require poll';
+'require tailscale.ui as tsui';
 
 var callGetStatus = rpc.declare({
 	object: 'tailscale',
@@ -56,161 +57,72 @@ return view.extend({
 	},
 
 	render: function() {
-		var enabled = uci.get('tailscale', 'settings', 'enabled') == '1';
-
-		var checkbox = E('input', { 'type': 'checkbox', 'style': 'width:auto' });
-		checkbox.checked = enabled;
+		var checkbox = E('input', { type: 'checkbox', id: 'ts_enabled' });
+		checkbox.checked = uci.get('tailscale', 'settings', 'enabled') == '1';
 		checkbox.addEventListener('change', L.bind(this.handleEnable, this));
-
-		var table = E('table', { 'class': 'table' });
-		var rows = [
-			[ _('Enable service'), checkbox ],
-			[ _('Daemon process'), E('span', { 'id': 'ts_running' }, '—') ],
-			[ _('Control connection'), E('span', { 'id': 'ts_online' }, '—') ],
-			[ _('Current Tailscale node'), E('span', { 'id': 'ts_node' }, '—') ],
-			[ 'Tailscale IP', E('span', { 'id': 'ts_ips' }, '—') ],
-			[ _('Configured local subnets'), E('span', { 'id': 'ts_routes' }, '—') ],
-			[ _('Applied local subnets'), E('span', { 'id': 'ts_actual_routes' }, '—') ],
-			[ _('Remote subnet access in use'), E('span', { 'id': 'ts_accept_routes' }, '—') ],
-			[ _('Bound User'), E('span', { 'id': 'ts_user' }, '—') ]
-		];
-
-		rows.forEach(function(r) {
-			table.appendChild(E('tr', { 'class': 'tr' }, [
-				E('td', { 'class': 'td left', 'width': '33%' }, r[0]),
-				E('td', { 'class': 'td left' }, r[1])
-			]));
-		});
-
-		var v = E('div', {}, [
-			E('h2', {}, _('Tailscale')),
-			E('div', { 'class': 'cbi-section-descr' }, [
-				_('The daemon process and configured subnets below do not confirm that routes are applied or approved. Check the current device name, login state and Tailscale admin console. See '),
-				E('a', { 'href': 'https://tailscale.com', 'target': '_blank' }, 'tailscale.com')
+		var metrics = [[_('Current device'), 'ts_hostname'], [_('Daemon process'), 'ts_running'], [_('Control connection'), 'ts_online'], [_('Visible devices'), 'ts_count']];
+		var details = [['Tailscale IP', 'ts_ips'], [_('Configured local subnets'), 'ts_routes'], [_('Applied local subnets'), 'ts_actual_routes'], [_('Remote subnet access in use'), 'ts_accept_routes'], [_('Bound User'), 'ts_user'], [_('Node public key'), 'ts_node'], [_('Core version'), 'ts_core_version']];
+		var v = tsui.wrap(_('Tailscale'), _('Your router connection and private network at a glance.'), [
+			E('div', { id: 'ts_alert_box' }),
+			E('div', { id: 'ts_apply_error', 'class': 'ts-notice', role: 'status', 'aria-live': 'polite', style: 'display:none' }),
+			E('section', { 'class': 'ts-card' }, [
+				E('div', { 'class': 'ts-toolbar' }, [E('label', {}, [checkbox, ' ', _('Enable service')]), E('span', { id: 'ts_updated', 'class': 'ts-muted' })]),
+				E('div', { 'class': 'ts-grid' }, metrics.map(function(row) { return E('div', { 'class': 'ts-metric' }, [E('small', {}, row[0]), E('strong', { id: row[1] }, '—')]); }))
 			]),
-			E('div', { 'id': 'ts_alert_box' }),
-			E('div', { 'id': 'ts_apply_error', 'class': 'alert-message warning', 'style': 'display:none;white-space:pre-wrap' }),
-			E('div', { 'class': 'cbi-section' }, [
-				E('h3', {}, _('Service Status')),
-				table
-			]),
-			E('div', { 'class': 'cbi-section' }, [
+			E('section', { 'class': 'ts-card' }, [
 				E('h3', {}, _('Account & Connection')),
-				E('div', { 'class': 'cbi-section-node' }, [
-					E('div', { 'class': 'cbi-value' }, [
-						E('label', { 'class': 'cbi-value-title' }, _('Login state')),
-						E('div', { 'class': 'cbi-value-field' }, [
-							E('span', { 'id': 'ts_login_desc' }, '—'),
-							E('div', { 'style': 'margin-top:8px', 'id': 'ts_actions' })
-						])
-					]),
-					E('div', { 'class': 'cbi-value' }, [
-						E('label', { 'class': 'cbi-value-title' }, _('Connection quality')),
-						E('div', { 'class': 'cbi-value-field' }, [
-							E('div', { 'class': 'cbi-value-description' },
-								_('Check NAT type, DERP relay latency and IPv6 reachability')),
-							E('button', {
-								'class': 'btn cbi-button',
-								'click': L.bind(this.handleNetcheck, this)
-							}, _('Run netcheck'))
-						])
-					]),
-					E('div', { 'class': 'cbi-value' }, [
-						E('label', { 'class': 'cbi-value-title' }, _('Uninstall')),
-						E('div', { 'class': 'cbi-value-field' }, [
-							E('div', { 'class': 'cbi-value-description' },
-								_('Logout, stop the service, remove firewall rules, state files and configuration.')),
-							E('button', {
-								'class': 'btn cbi-button cbi-button-negative',
-								'click': L.bind(this.handleUninstall, this)
-							}, _('Uninstall'))
-						])
-					])
-				])
+				E('div', { 'class': 'ts-toolbar' }, [E('span', { id: 'ts_login_desc' }, '—'), E('div', { id: 'ts_actions' }), E('button', { 'class': 'btn cbi-button ts-success', click: L.bind(this.handleNetcheck, this) }, _('Run netcheck'))]),
+			]),
+			E('section', { 'class': 'ts-card' }, [
+				E('div', {}, [E('h3', {}, _('Connection details')), E('dl', {}, details.reduce(function(all, row) { return all.concat([E('dt', {}, row[0]), E('dd', { id: row[1] }, '—')]); }, []))])
+			]),
+			E('section', { 'class': 'ts-card ts-danger' }, [
+				E('h3', {}, _('Identity and configuration cleanup')),
+				E('p', {}, _('Remove this device identity and plugin configuration. The installed package remains. Sign in again after reinstalling.')),
+				E('button', { 'class': 'btn cbi-button cbi-button-negative', click: L.bind(this.handleUninstall, this) }, _('Clear identity and configuration'))
 			])
 		]);
-
-		poll.add(L.bind(this.updateStatus, this), 5);
-		this.updateStatus();
+		poll.add(L.bind(this.updateStatus, this), 5); this.updateStatus();
 		return v;
 	},
 
 	updateStatus: function() {
+		if (this.fetching) return Promise.resolve(); this.fetching = true;
 		return callGetStatus().then(L.bind(function(res) {
-			res = res || {};
-			var running = !!res.running;
-			var errorBox = document.getElementById('ts_apply_error');
-			if (errorBox) {
-				errorBox.textContent = res.apply_error
-					? _('Settings were not fully applied: %s').format(res.apply_error)
-					: (res.busy ? _('Applying settings or waiting for login...') : '');
-				errorBox.style.display = errorBox.textContent ? '' : 'none';
-			}
-			if (res.backend_state === 'Running') {
-				this.loginRequested = false;
-				if (this.loginModalShown) ui.hideModal();
-				this.loginModalShown = false;
-			}
-
-			var el = document.getElementById('ts_running');
-			if (!el) return;
-			el.textContent = running ? 'Running' : _('Stopped');
-			el.style.color = running ? 'green' : '#c62828';
-			el.style.fontWeight = 'bold';
-
-			var online = document.getElementById('ts_online');
-			online.textContent = res.online ? _('Connected') : _('Disconnected or starting');
-			online.style.color = res.online ? 'green' : '#c62828';
-
-			var node = document.getElementById('ts_node');
-			if (res.hostname && res.node_key && res.node_key.indexOf('nodekey:000') !== 0) {
-				node.textContent = String(res.node_key).replace(/^nodekey:/, '').substring(0, 16) +
-					'…  (' + res.hostname + ')';
-			} else {
-				node.textContent = '—';
-			}
-
+			var el = document.getElementById('ts_running'); if (!el) return;
+			var message = res.apply_error ? _('Settings were not fully applied: %s').format(res.apply_error) : res.busy ? _('Applying settings or waiting for login...') : tsui.message(res);
+			var errorBox = document.getElementById('ts_apply_error'); errorBox.textContent = message; errorBox.style.display = message ? '' : 'none';
+			if (res.success === false || res.stale) { document.getElementById('ts_updated').textContent = tsui.updated(res.fetched_at) + ' · ' + _('Stale'); return; }
+			el.textContent = res.running ? _('Running') : _('Stopped'); el.className = res.running ? 'ts-good' : 'ts-neutral';
+			document.getElementById('ts_online').textContent = res.online ? _('Connected') : _('Disconnected or starting');
+			document.getElementById('ts_hostname').textContent = res.hostname || '—';
+			document.getElementById('ts_node').textContent = res.node_key || '—';
 			document.getElementById('ts_ips').textContent = res.ips || '—';
-
+			document.getElementById('ts_core_version').textContent = res.core_version || '—';
+			document.getElementById('ts_updated').textContent = tsui.updated(res.fetched_at);
 			var routes = uci.get('tailscale', 'settings', 'advertise_routes');
-			routes = Array.isArray(routes) ? routes.filter(Boolean) : (routes ? [routes] : []);
-			document.getElementById('ts_routes').textContent = routes.join(', ') || '—';
+			document.getElementById('ts_routes').textContent = Array.isArray(routes) ? routes.filter(Boolean).join(', ') || '—' : routes || '—';
 			document.getElementById('ts_actual_routes').textContent = res.actual_routes || '—';
 			document.getElementById('ts_accept_routes').textContent = res.accept_routes ? _('Enabled') : _('Disabled');
-
-			var user = document.getElementById('ts_user');
-			user.textContent = '';
-			if (res.user)
-				user.appendChild(E('a', {
-					'href': 'https://login.tailscale.com/admin/machines',
-					'target': '_blank'
-				}, res.user));
-			else
-				user.textContent = '—';
-
-			var desc = document.getElementById('ts_login_desc');
-			var act = document.getElementById('ts_actions');
-			act.textContent = '';
-			if (res.backend_state === 'NeedsLogin') {
-				desc.textContent = _('Not logged in');
-				act.appendChild(E('button', {
-					'class': 'btn cbi-button cbi-button-apply',
-					'click': L.bind(this.handleLogin, this)
-				}, _('Login')));
-				if (res.auth_url && (this.loginRequested || this.loginModalShown))
-					this.showLoginModal(res.auth_url);
-			} else if (res.user) {
-				desc.textContent = _('Authorized');
-				act.appendChild(E('button', {
-					'class': 'btn cbi-button',
-					'click': L.bind(this.handleLogout, this)
-				}, _('Logout & Unbind')));
-			} else {
-				desc.textContent = res.backend_state || '—';
+			document.getElementById('ts_user').textContent = res.user || '—';
+			var raw; try { raw = JSON.parse(res.raw || '{}'); } catch (e) { throw new Error(_('Invalid status response.')); }
+			var peers = Object.keys(raw.Peer || {}).map(function(k) { return raw.Peer[k]; });
+			document.getElementById('ts_count').textContent = _('%d online / %d total').format(peers.filter(function(p) { return p.Online; }).length, peers.length);
+			if (!this.accountBusy) {
+				var desc = document.getElementById('ts_login_desc'), act = document.getElementById('ts_actions');
+				var action = res.backend_state === 'NeedsLogin' ? 'login' : res.user ? 'logout' : '';
+				desc.textContent = action === 'login' ? _('Not logged in') : action === 'logout' ? _('Authorized') : res.backend_state || _('Stopped');
+				if (this.accountAction !== action) {
+					this.accountAction = action; act.textContent = '';
+					if (action) act.appendChild(E('button', { 'class': 'btn cbi-button ' + (action === 'login' ? 'ts-success' : 'ts-warning'), click: L.bind(action === 'login' ? this.handleLogin : this.handleLogout, this) }, action === 'login' ? _('Login') : _('Logout & Unbind')));
+				}
 			}
-
+			if (res.backend_state === 'NeedsLogin' && res.auth_url && (this.loginRequested || this.loginModalShown)) this.showLoginModal(res.auth_url);
+			if (res.backend_state === 'Running') { this.loginRequested = false; if (this.loginModalShown) ui.hideModal(); this.loginModalShown = false; }
 			this.renderKeyAlert(res);
-		}, this));
+		}, this)).catch(function(err) {
+			var el = document.getElementById('ts_apply_error'); if (el) { el.textContent = err.message || String(err); el.style.display = ''; }
+		}).finally(L.bind(function() { this.fetching = false; }, this));
 	},
 
 	renderKeyAlert: function(res) {
@@ -232,6 +144,8 @@ return view.extend({
 	},
 
 	handleLogin: function(ev) {
+		if (this.accountBusy) return Promise.resolve();
+		this.accountBusy = true;
 		this.loginRequested = true;
 		ev.target.disabled = true;
 		ev.target.textContent = _('Requesting login URL...');
@@ -240,10 +154,11 @@ return view.extend({
 		}).catch(L.bind(function(err) {
 			this.loginRequested = false;
 			ui.addNotification(null, E('p', err.message || String(err)));
-		}, this)).finally(function() {
+		}, this)).finally(L.bind(function() {
+			this.accountBusy = false;
 			ev.target.disabled = false;
 			ev.target.textContent = _('Login');
-		});
+		}, this));
 	},
 
 	showLoginModal: function(url) {
@@ -286,8 +201,9 @@ return view.extend({
 	handleNetcheck: function(ev) {
 		var btn = ev.target;
 		btn.disabled = true;
-		btn.textContent = _('Checking...');
+		btn.textContent = _('Testing connection...');
 		return callNetcheck().then(function(res) {
+			if (!res || res.success === false) throw new Error((res && res.output) || _('Detection failed.'));
 			ui.showModal(_('Netcheck Result'), [
 				E('pre', { 'style': 'max-height:400px;overflow:auto;font-size:12px' },
 					(res && res.output) || _('No result')),
@@ -295,7 +211,7 @@ return view.extend({
 					E('button', { 'class': 'btn cbi-button', 'click': ui.hideModal }, _('Close'))
 				])
 			]);
-		}).finally(function() {
+		}).catch(function(err) { ui.addNotification(null, E('p', err.message || String(err))); }).finally(function() {
 			btn.disabled = false;
 			btn.textContent = _('Run netcheck');
 		});
@@ -305,11 +221,11 @@ return view.extend({
 		var val = ev.target.checked ? '1' : '0';
 		ev.target.disabled = true;
 		ui.showModal(null, E('p', { 'class': 'spinning' }, _('Applying changes...')));
-		return callSetEnabled(val).then(function(res) {
+		return callSetEnabled(val).then(L.bind(function(res) {
 			if (!res || !res.success) throw new Error((res && res.output) || _('Failed'));
 			ui.hideModal();
-			window.location.reload();
-		}).catch(function(e) {
+			return this.updateStatus();
+		}, this)).catch(function(e) {
 			ev.target.checked = val !== '1';
 			ui.hideModal();
 			ui.addNotification(null, E('p', _('Failed to apply: %s').format(e.message || e)));
@@ -339,7 +255,7 @@ return view.extend({
 	},
 
 	handleUninstall: function() {
-		ui.showModal(_('Uninstall'), [
+		ui.showModal(_('Clear identity and configuration'), [
 			E('p', {}, _('This will logout, stop the service, and remove firewall rules, state files and configuration. The package itself can then be removed from System → Software. Continue?')),
 			E('div', { 'class': 'right' }, [
 				E('button', { 'class': 'btn cbi-button', 'click': ui.hideModal }, _('Cancel')),
@@ -358,7 +274,7 @@ return view.extend({
 							ui.addNotification(null, E('p', err.message || String(err)));
 						});
 					}, this)
-				}, _('Uninstall'))
+				}, _('Clear identity and configuration'))
 			])
 		]);
 	},

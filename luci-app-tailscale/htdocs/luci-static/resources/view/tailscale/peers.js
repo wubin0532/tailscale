@@ -3,146 +3,91 @@
 'require rpc';
 'require poll';
 'require ui';
+'require tailscale.ui as tsui';
 
-var callGetStatus = rpc.declare({
-	object: 'tailscale',
-	method: 'get_status',
-	expect: { }
-});
-
-var callPing = rpc.declare({
-	object: 'tailscale',
-	method: 'ping',
-	params: [ 'host' ],
-	expect: { }
-});
+var callGetStatus = rpc.declare({ object: 'tailscale', method: 'get_status', expect: {} });
+var callPing = rpc.declare({ object: 'tailscale', method: 'ping', params: ['host'], expect: {} });
 
 return view.extend({
 	render: function() {
-		var v = E('div', {}, [
-			E('h2', {}, _('Peers')),
-			E('div', { 'class': 'cbi-section-descr' },
-				_('All devices in your tailnet. Refresh automatically every 5 seconds.')),
-			E('div', { 'class': 'cbi-section' }, [
-				E('h3', {}, [
-					_('Online Devices'),
-					' ',
-					E('span', { 'id': 'ts_peer_count', 'style': 'font-weight:normal;color:#888' }, '')
+		this.peers = []; this.checks = {}; this.query = ''; this.onlyOnline = false;
+		var v = tsui.wrap(_('Devices'), _('Devices visible to this router. Access policies can limit visibility.'), [
+			E('section', { 'class': 'ts-card' }, [
+				E('div', { 'class': 'ts-toolbar' }, [
+					E('input', { type: 'text', 'class': 'ts-wide', placeholder: _('Search name or IP'), 'aria-label': _('Search name or IP'), input: L.bind(function(ev) { this.query = ev.target.value.toLowerCase(); this.drawPeers(); }, this) }),
+					E('label', {}, [E('input', { type: 'checkbox', change: L.bind(function(ev) { this.onlyOnline = ev.target.checked; this.drawPeers(); }, this) }), ' ', _('Online only')]),
+					E('button', { 'class': 'btn cbi-button ts-action', click: L.bind(this.updatePeers, this) }, _('Refresh')),
+					E('span', { id: 'ts_peer_count', 'class': 'ts-muted' }),
+					E('span', { id: 'ts_peer_updated', 'class': 'ts-muted' })
 				]),
-				E('table', { 'class': 'table cbi-section-table' }, [
-					E('thead', {}, E('tr', { 'class': 'tr table-titles' }, [
-						E('th', { 'class': 'th' }, _('Node')),
-						E('th', { 'class': 'th' }, 'Tailscale IP'),
-						E('th', { 'class': 'th' }, _('OS')),
-						E('th', { 'class': 'th' }, _('Status')),
-						E('th', { 'class': 'th' }, _('Connection')),
-						E('th', { 'class': 'th' }, _('Last Seen')),
-						E('th', { 'class': 'th' }, '')
-					])),
-					E('tbody', { 'id': 'ts_peers' }, [
-						E('tr', { 'class': 'tr' }, E('td', { 'class': 'td', 'colspan': 7 }, _('Loading...')))
-					])
+				E('div', { id: 'ts_peer_notice', 'class': 'ts-notice', role: 'status', 'aria-live': 'polite' }, _('Loading...')),
+				E('table', { 'class': 'table ts-peer-table' }, [
+					E('thead', {}, E('tr', {}, [_('Node'), 'Tailscale IP', _('OS'), _('Status'), _('Connection'), _('Last Seen'), _('Detection')].map(function(t) { return E('th', {}, t); }))),
+					E('tbody', { id: 'ts_peers' })
 				])
 			])
 		]);
-
-		poll.add(L.bind(this.updatePeers, this), 5);
-		this.updatePeers();
+		poll.add(L.bind(this.updatePeers, this), 5); this.updatePeers();
 		return v;
 	},
-
 	fmtSeen: function(ts) {
 		if (!ts || ts.indexOf('0001-') === 0) return '—';
-		var diff = Math.floor((Date.now() - new Date(ts)) / 1000);
+		var diff = Math.max(0, Math.floor((Date.now() - new Date(ts)) / 1000));
+		if (!isFinite(diff)) return '—';
 		if (diff < 60) return _('%ds ago').format(diff);
 		if (diff < 3600) return _('%dm ago').format(Math.floor(diff / 60));
 		if (diff < 86400) return _('%dh ago').format(Math.floor(diff / 3600));
 		return _('%dd ago').format(Math.floor(diff / 86400));
 	},
-
 	updatePeers: function() {
+		if (this.fetching) return Promise.resolve();
+		this.fetching = true;
 		return callGetStatus().then(L.bind(function(res) {
-			var tbody = document.getElementById('ts_peers');
-			if (!tbody) return;
-
 			var raw;
-			try { raw = JSON.parse(res.raw || '{}'); } catch (e) { raw = {}; }
-
-			var peers = [];
-			Object.keys(raw.Peer || {}).forEach(function(k) {
-				peers.push(raw.Peer[k]);
-			});
-			peers.sort(function(a, b) {
-				if (!!b.Online !== !!a.Online) return (b.Online ? 1 : 0) - (a.Online ? 1 : 0);
-				return (a.HostName || '').localeCompare(b.HostName || '');
-			});
-
-			var online = peers.filter(function(p) { return p.Online; }).length;
-			document.getElementById('ts_peer_count').textContent =
-				_('%d online / %d total').format(online, peers.length);
-
-			tbody.textContent = '';
-			if (!peers.length) {
-				tbody.appendChild(E('tr', { 'class': 'tr' }, E('td',
-					{ 'class': 'td', 'colspan': 7 }, _('No peers found.'))));
-				return;
-			}
-
-			peers.forEach(L.bind(function(p) {
-				var ip = (p.TailscaleIPs || [])[0] || '—';
-				var conn;
-				if (!p.Online)
-					conn = '—';
-				else if (p.CurAddr)
-					conn = _('Direct');
-				else
-					conn = _('Relay') + (p.Relay ? ' (' + p.Relay + ')' : '');
-
-				var pingBtn = E('button', {
-					'class': 'btn cbi-button',
-					'style': 'padding:2px 10px',
-					'click': L.bind(this.handlePing, this, ip)
-				}, _('Ping'));
-
-				var statusEl = E('span', {
-					'style': 'font-weight:bold;color:' + (p.Online ? 'green' : '#999')
-				}, p.Online ? _('Online') : _('Offline'));
-
-				tbody.appendChild(E('tr', { 'class': 'tr' }, [
-					E('td', { 'class': 'td' }, [
-						E('strong', {}, p.HostName || '—'),
-						p.ExitNodeOption ? E('span', { 'class': 'badge', 'style': 'margin-left:6px' }, 'exit') : ''
-					]),
-					E('td', { 'class': 'td' }, ip),
-					E('td', { 'class': 'td' }, p.OS || '—'),
-					E('td', { 'class': 'td' }, statusEl),
-					E('td', { 'class': 'td' }, conn),
-					E('td', { 'class': 'td' }, p.Online ? _('now') : this.fmtSeen(p.LastSeen)),
-					E('td', { 'class': 'td' }, pingBtn)
-				]));
-			}, this));
+			if (res.success === false || res.stale) throw new Error(tsui.message(res));
+			try { raw = JSON.parse(res.raw || '{}'); } catch (e) { throw new Error(_('Invalid status response.')); }
+			if (res.running && !raw.BackendState) throw new Error(_('Invalid status response.'));
+			this.peers = Object.keys(raw.Peer || {}).map(function(k) { var p = raw.Peer[k]; p._id = p.ID || k; return p; });
+			this.notice(tsui.message(res));
+			var stamp = document.getElementById('ts_peer_updated'); if (stamp) stamp.textContent = tsui.updated(res.fetched_at);
+			this.drawPeers();
+		}, this)).catch(L.bind(function(err) {
+			this.notice((err.message || String(err)) + ' ' + _('Previous data is retained.'));
+		}, this)).finally(L.bind(function() { this.fetching = false; }, this));
+	},
+	notice: function(message) {
+		var el = document.getElementById('ts_peer_notice');
+		if (el) { el.textContent = message; el.style.display = message ? '' : 'none'; }
+	},
+	drawPeers: function() {
+		var tbody = document.getElementById('ts_peers'); if (!tbody) return;
+		var peers = (this.peers || []).slice().sort(function(a, b) { return Number(!!b.Online) - Number(!!a.Online) || (a.HostName || '').localeCompare(b.HostName || ''); });
+		var count = document.getElementById('ts_peer_count');
+		if (count) count.textContent = _('%d online / %d total').format(peers.filter(function(p) { return p.Online; }).length, peers.length);
+		peers = peers.filter(L.bind(function(p) { return (!this.onlyOnline || p.Online) && (!this.query || ((p.HostName || '') + ' ' + (p.TailscaleIPs || []).join(' ')).toLowerCase().indexOf(this.query) >= 0); }, this));
+		var focused = document.activeElement && document.activeElement.getAttribute && document.activeElement.getAttribute('data-peer');
+		tbody.textContent = '';
+		if (!peers.length) tbody.appendChild(E('tr', {}, E('td', { colspan: 7 }, _('No matching devices. If Home is missing, compare the core status and access policy.'))));
+		peers.forEach(L.bind(function(p) {
+			var ip = (p.TailscaleIPs || [])[0];
+			var check = (this.checks || {})[p._id] || {};
+			var conn = !p.Online ? '—' : !p.Active ? _('Idle') : p.CurAddr ? _('Direct') : p.PeerRelay ? _('Peer relay') : p.Relay ? _('Relay') + ' (' + p.Relay + ')' : _('Unknown');
+			var btn = E('button', { 'class': 'btn cbi-button ts-success', 'data-peer': p._id, click: L.bind(this.handlePing, this, ip, p._id) }, check.pending ? _('Testing connection...') : _('Ping'));
+			btn.disabled = !!check.pending || !ip;
+			var values = [E('strong', {}, p.HostName || p.DNSName || '—'), (p.TailscaleIPs || []).join('\n') || '—', p.OS || '—', E('span', { 'class': p.Online ? 'ts-good' : 'ts-neutral' }, p.Online ? _('Online') : _('Offline')), conn, p.Online ? _('now') : this.fmtSeen(p.LastSeen), [btn, E('span', { 'class': 'ts-peer-result', 'aria-live': 'polite' }, check.result || '')]];
+			var titles = [_('Node'), 'Tailscale IP', _('OS'), _('Status'), _('Connection'), _('Last Seen'), _('Detection')];
+			tbody.appendChild(E('tr', {}, values.map(function(value, i) { return E('td', { 'data-title': titles[i] }, value); })));
+			if (focused === p._id && !check.pending) btn.focus();
 		}, this));
 	},
-
-	handlePing: function(ip, ev) {
-		var btn = ev.currentTarget;
-		btn.disabled = true;
-		btn.textContent = '…';
+	handlePing: function(ip, id) {
+		this.checks = this.checks || {};
+		if (!ip || (this.checks[id] && this.checks[id].pending)) return Promise.resolve();
+		var check = this.checks[id] = { pending: true, result: '' }; this.drawPeers();
 		return callPing(ip).then(function(res) {
-			var out = (res && res.output) ? res.output.trim().split('\n') : [];
-			btn.textContent = out.length
-				? out[out.length - 1].replace(/^pong from \S+ \(([^)]*)\).*in ([\d.]+ms).*/, '$1 · $2')
-				: _('timeout');
-		}).catch(function(err) {
-			btn.textContent = _('Failed');
-			ui.addNotification(null, E('p', err.message || String(err)));
-		}).finally(function() {
-			btn.disabled = false;
-			setTimeout(function() { btn.textContent = _('Ping'); }, 4000);
-		});
+			if (!res || res.success !== true) throw new Error((res && res.output) || _('Detection failed.'));
+			check.result = (res.output || '').trim();
+		}).catch(function(err) { check.result = _('Failed: %s').format(err.message || String(err)); }).finally(L.bind(function() { check.pending = false; this.drawPeers(); }, this));
 	},
-
-	handleSaveApply: null,
-	handleSave: null,
-	handleReset: null
+	handleSaveApply: null, handleSave: null, handleReset: null
 });

@@ -24,15 +24,6 @@ jobs:
             sh -n "$script"
           done
 
-      - uses: actions/setup-go@v5
-        with:
-          go-version: stable
-
-      - name: Install UPX
-        run: |
-          curl -sL https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-amd64_linux.tar.xz | tar xJ
-          sudo install -m755 upx-4.2.4-amd64_linux/upx /usr/local/bin/upx
-
       - name: Build po2lmo (LuCI i18n)
         run: |
           git clone --depth 1 https://github.com/openwrt/luci.git /tmp/luci
@@ -40,23 +31,15 @@ jobs:
           mkdir -p build
           cp /tmp/luci/modules/luci-base/src/po2lmo build/po2lmo
 
-      - name: Build tailscaled binaries
+      - name: Verify official Tailscale binaries
+        run: ./fetch-core.sh
+
+      - name: Install pinned UPX
         run: |
-          TS_VER=$(sed -n 's/^PKG_VERSION:=//p' tailscale/Makefile)
-          echo "tailscale $TS_VER"
-          git clone --depth 1 --branch "v$TS_VER" https://github.com/tailscale/tailscale.git /tmp/ts
-          mkdir -p build/bin/upx
-          TAGS="ts_include_cli,ts_omit_aws,ts_omit_bird,ts_omit_completion,ts_omit_kube,ts_omit_systray,ts_omit_taildrop,ts_omit_tap,ts_omit_tpm,ts_omit_acme,ts_omit_connectivity_control,ts_omit_debugeventbus,ts_omit_debugportmapper,ts_omit_desktop_sessions,ts_omit_drive,ts_omit_kubernetes,ts_omit_oauthkey,ts_omit_outboundproxy,ts_omit_posture"
-          LDFLAGS="-s -w -X \"tailscale.com/version.longStamp=$TS_VER (OpenWrt)\" -X tailscale.com/version.shortStamp=$TS_VER"
-          for pair in arm64:arm64 armv7:arm mipsle:mipsle amd64:amd64; do
-            name="${pair%%:*}"; goarch="${pair##*:}"
-            extra=""; [ "$goarch" = arm ] && extra="GOARM=7"
-            echo "=== building linux/$goarch ==="
-            env GOOS=linux GOARCH=$goarch $extra GOFLAGS=-mod=mod CGO_ENABLED=0 \
-              go build -C /tmp/ts -tags "$TAGS" -ldflags "$LDFLAGS" \
-              -o "$PWD/build/bin/upx/tailscaled-linux-$name" ./cmd/tailscaled
-          done
-          upx --lzma --best build/bin/upx/tailscaled-linux-*
+          curl -fL --retry 2 -o /tmp/upx.tar.xz https://github.com/upx/upx/releases/download/v5.2.1/upx-5.2.1-amd64_linux.tar.xz
+          echo '402162aad30af47e60dbd767fb2e64ca394ace9727ba1f40283641f1d1b91657  /tmp/upx.tar.xz' | sha256sum -c -
+          tar -xJf /tmp/upx.tar.xz -C /tmp
+          echo "UPX_BIN=/tmp/upx-5.2.1-amd64_linux/upx" >> "$GITHUB_ENV"
 
       - name: Build apk-tools (mkpkg for apk v3 packages)
         run: |
@@ -68,6 +51,9 @@ jobs:
 
       - name: Assemble ipk + apk packages
         run: sudo apt-get install -y -qq fakeroot && fakeroot ./build-ipk.sh
+
+      - name: Verify package contents
+        run: python3 tests/verify_packages.py
 
       - name: Upload build artifacts (workflow_dispatch only)
         if: github.event_name == 'workflow_dispatch'
@@ -83,6 +69,7 @@ jobs:
           files: |
             dist/*.ipk
             dist/*.apk
+            dist/SHA256SUMS-v2.0.txt
           overwrite_files: false
           draft: true
           generate_release_notes: true

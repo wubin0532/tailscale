@@ -15,7 +15,7 @@
 		"order": 10,
 		"action": {
 			"type": "view",
-			"path": "tailscale/status-v123"
+			"path": "tailscale/status-v2"
 		},
 		"depends": {
 			"acl": [ "luci-app-tailscale" ]
@@ -26,7 +26,7 @@
 		"order": 20,
 		"action": {
 			"type": "view",
-			"path": "tailscale/peers-v123"
+			"path": "tailscale/peers-v2"
 		},
 		"depends": {
 			"acl": [ "luci-app-tailscale" ]
@@ -37,7 +37,7 @@
 		"order": 30,
 		"action": {
 			"type": "view",
-			"path": "tailscale/log-v123"
+			"path": "tailscale/log-v2"
 		},
 		"depends": {
 			"acl": [ "luci-app-tailscale" ]
@@ -48,7 +48,7 @@
 		"order": 40,
 		"action": {
 			"type": "view",
-			"path": "tailscale/settings-v123"
+			"path": "tailscale/settings-v2"
 		},
 		"depends": {
 			"acl": [ "luci-app-tailscale" ]

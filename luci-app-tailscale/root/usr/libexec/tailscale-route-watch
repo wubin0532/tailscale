@@ -11,6 +11,8 @@ while sleep 5; do
 		ts_apply
 	fi
 	state=$(ts_backend_state)
+	# A busy/failed snapshot is not a backend transition.
+	[ -n "$state" ] || continue
 	if [ "$state" = Running ] && [ "$last_state" != Running ]; then
 		# Control/DNS recovery may happen well after initial startup timed out.
 		ts_apply
@@ -18,13 +20,15 @@ while sleep 5; do
 	last_state=$state
 	[ "$state" = Running ] || continue
 	# Watch the actual preference, so a later approved route is also checked.
-	accept=$("$TS_CLI" debug prefs 2>/dev/null | jsonfilter -e '@.RouteAll')
+	accept=$(ts_pref accept)
 	[ "$accept" = true ] || continue
-	mkdir "$TS_RUN_DIR/luci-lock" 2>/dev/null || continue
-	trap 'rmdir "$TS_RUN_DIR/luci-lock" 2>/dev/null; exit' HUP INT TERM
-	if ! ts_check_conflicts; then
+	ts_lock || continue
+	trap 'exec 7>&-; exit' HUP INT TERM
+	check=0
+	ts_check_conflicts || check=$?
+	if [ "$check" -eq 1 ]; then
 		ts_run "$TS_CLI" set --accept-routes=false
 	fi
-	rmdir "$TS_RUN_DIR/luci-lock" 2>/dev/null
+	exec 7>&-
 	trap - HUP INT TERM
 done

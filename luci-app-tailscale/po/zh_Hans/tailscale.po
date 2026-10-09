@@ -492,3 +492,153 @@ msgstr "已连接"
 
 msgid "Disconnected or starting"
 msgstr "未连接或正在启动"
+
+msgid "Advanced"
+msgstr "高级设置"
+
+msgid "Approve this device in the Tailscale admin console."
+msgstr "请先在 Tailscale 管理后台批准此设备。"
+
+msgid "Auto-follow paused while scrolling"
+msgstr "浏览历史日志时暂停跟随"
+
+msgid "Clear identity and configuration"
+msgstr "清除身份与配置"
+
+msgid "Connect to Home and VPS without changing your normal internet route."
+msgstr "连接家庭网络与 VPS，保留正常上网路径。"
+
+msgid "Connection and subnets"
+msgstr "连接与子网"
+
+msgid "Connection details"
+msgstr "连接详情"
+
+msgid "Control connection is not ready. The device list may be incomplete."
+msgstr "控制连接尚未就绪，设备列表可能不完整。"
+
+msgid "Copy"
+msgstr "复制"
+
+msgid "Copy is unavailable. Select the log text to copy."
+msgstr "无法自动复制，请选中日志文本后复制。"
+
+msgid "Core version"
+msgstr "官方核心版本"
+
+msgid "Current device"
+msgstr "当前设备"
+
+msgid "Detection"
+msgstr "连通检测"
+
+msgid "Detection failed."
+msgstr "检测失败。"
+
+msgid "Devices"
+msgstr "组网设备"
+
+msgid "Devices visible to this router. Access policies can limit visibility."
+msgstr "此路由器可见的组网设备；访问策略可能限制可见范围。"
+
+msgid "Failed: %s"
+msgstr "失败：%s"
+
+msgid "Filter logs"
+msgstr "筛选日志"
+
+msgid "Following latest entries"
+msgstr "自动跟随最新日志"
+
+msgid "Home and VPS example"
+msgstr "家庭网络与 VPS 示例"
+
+msgid "Home: accept its approved subnet route. VPS: join the same tailnet and use its 100.x.x.x address. No local subnet advertisement is needed to access the VPS itself."
+msgstr "家庭网络：接受已获批准的子网路由。VPS：加入同一 Tailscale 网络后，使用其 100.x.x.x 地址。访问 VPS 本身无需公开本地网段。"
+
+msgid "Identity and configuration cleanup"
+msgstr "身份与配置清理"
+
+msgid "Idle"
+msgstr "空闲，尚未建立通信"
+
+msgid "Invalid status response."
+msgstr "状态数据格式错误。"
+
+msgid "NAT limits may stay empty. To restrict NAT destinations, add both 192.168.199.0/24 and the VPS Tailscale address with /32. NAT limits do not grant access."
+msgstr "NAT 限制可以留空。如需限制 NAT 目的地址，可同时添加 192.168.199.0/24 与 VPS 的 Tailscale 地址/32。NAT 限制不会授予访问权限。"
+
+msgid "Network and firewall"
+msgstr "网络与防火墙"
+
+msgid "No matching devices. If Home is missing, compare the core status and access policy."
+msgstr "没有匹配的设备。若家庭节点缺失，请对照核心节点名单与访问策略。"
+
+msgid "No matching log entries."
+msgstr "没有匹配的日志。"
+
+msgid "Node public key"
+msgstr "节点公钥"
+
+msgid "Online only"
+msgstr "仅显示在线设备"
+
+msgid "Pause"
+msgstr "暂停"
+
+msgid "Paused"
+msgstr "已暂停"
+
+msgid "Peer relay"
+msgstr "节点中继"
+
+msgid "Previous data is retained."
+msgstr "已保留上次数据。"
+
+msgid "Recent Tailscale activity. Pause before reviewing or copying."
+msgstr "查看近期 Tailscale 运行记录；检查或复制时可暂停刷新。"
+
+msgid "Remove this device identity and plugin configuration. The installed package remains. Sign in again after reinstalling."
+msgstr "清除设备身份和插件配置，安装包仍保留。重新安装后需要再次登录。"
+
+msgid "Resume"
+msgstr "继续"
+
+msgid "Search name or IP"
+msgstr "搜索设备名或 IP"
+
+msgid "Service stopped. Enable it on the status page."
+msgstr "服务已停止，请在状态页启用。"
+
+msgid "Settings"
+msgstr "设置"
+
+msgid "Sign in on the status page to see your devices."
+msgstr "请在状态页登录后查看组网设备。"
+
+msgid "Stale"
+msgstr "数据已过期"
+
+msgid "Status could not be refreshed."
+msgstr "无法刷新状态。"
+
+msgid "Unknown"
+msgstr "尚未确定"
+
+msgid "Updated: %s"
+msgstr "更新于 %s"
+
+msgid "Visible devices"
+msgstr "可见组网设备"
+
+msgid "Waiting for status"
+msgstr "等待状态数据"
+
+msgid "Your router connection and private network at a glance."
+msgstr "集中查看路由器连接与私有网络状态。"
+
+msgid "Why and how to configure"
+msgstr "查看配置说明"
+
+msgid "Testing connection..."
+msgstr "正在检测连接…"

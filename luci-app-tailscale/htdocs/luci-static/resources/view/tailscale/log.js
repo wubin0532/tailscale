@@ -2,53 +2,39 @@
 'require view';
 'require rpc';
 'require poll';
-
-var callGetLog = rpc.declare({
-	object: 'tailscale',
-	method: 'get_log',
-	expect: { }
-});
-
+'require ui';
+'require tailscale.ui as tsui';
+var callGetLog = rpc.declare({ object: 'tailscale', method: 'get_log', expect: {} });
 return view.extend({
 	render: function() {
-		var v = E('div', {}, [
-			E('h2', {}, _('Logs')),
-			E('div', { 'class': 'cbi-section-descr' },
-				_('Tailscale daemon logs, refreshed every 3 seconds.')),
-			E('div', { 'class': 'cbi-section' }, [
-				E('h3', {}, [
-					'logread · tailscale',
-					' ',
-					E('button', {
-						'class': 'btn cbi-button',
-						'style': 'padding:2px 10px',
-						'click': L.bind(this.updateLog, this)
-					}, _('Refresh'))
-				]),
-				E('pre', {
-					'id': 'ts_log',
-					'style': 'max-height:520px;overflow-y:auto;font-size:12px;white-space:pre-wrap;word-break:break-all'
-				}, _('Loading...'))
-			])
-		]);
-
-		poll.add(L.bind(this.updateLog, this), 3);
-		this.updateLog();
-		return v;
+		this.paused = false; this.log = ''; this.query = '';
+		var v = tsui.wrap(_('Logs'), _('Recent Tailscale activity. Pause before reviewing or copying.'), [E('section', { 'class': 'ts-card' }, [
+			E('div', { 'class': 'ts-toolbar' }, [
+				E('button', { 'class': 'btn cbi-button ts-warning', click: L.bind(function(ev) { this.paused = !this.paused; ev.currentTarget.textContent = this.paused ? _('Resume') : _('Pause'); this.drawLog(); if (!this.paused) return this.updateLog(); }, this) }, _('Pause')),
+				E('button', { 'class': 'btn cbi-button ts-action', click: L.bind(function() { return this.updateLog(true); }, this) }, _('Refresh')),
+				E('button', { 'class': 'btn cbi-button ts-action', click: L.bind(function() {
+					if (!navigator.clipboard) { ui.addNotification(null, E('p', _('Copy is unavailable. Select the log text to copy.'))); return; }
+					return navigator.clipboard.writeText(document.getElementById('ts_log').textContent).catch(function() { ui.addNotification(null, E('p', _('Copy is unavailable. Select the log text to copy.'))); });
+				}, this) }, _('Copy')),
+				E('input', { type: 'text', 'class': 'ts-wide', placeholder: _('Filter logs'), 'aria-label': _('Filter logs'), input: L.bind(function(ev) { this.query = ev.target.value.toLowerCase(); this.drawLog(); }, this) }),
+				E('span', { id: 'ts_log_status', 'class': 'ts-muted' }, _('Loading...'))
+			]), E('pre', { id: 'ts_log', tabindex: 0 }, _('Loading...'))
+		])]);
+		poll.add(L.bind(this.updateLog, this), 5); this.updateLog(); return v;
 	},
-
-	updateLog: function() {
-		return callGetLog().then(function(res) {
-			var pre = document.getElementById('ts_log');
-			if (!pre) return;
-			var nearBottom = pre.scrollHeight - pre.scrollTop - pre.clientHeight < 60;
-			pre.textContent = (res && res.log) || _('No log entries.');
-			if (nearBottom)
-				pre.scrollTop = pre.scrollHeight;
-		});
+	updateLog: function(force) {
+		if ((this.paused && force !== true) || this.fetching) return Promise.resolve();
+		this.fetching = true;
+		return callGetLog().then(L.bind(function(res) { this.log = (res && res.log) || ''; this.drawLog(); }, this)).catch(function(err) {
+			var el = document.getElementById('ts_log_status'); if (el) el.textContent = err.message || _('Status could not be refreshed.');
+		}).finally(L.bind(function() { this.fetching = false; }, this));
 	},
-
-	handleSaveApply: null,
-	handleSave: null,
-	handleReset: null
+	drawLog: function() {
+		var pre = document.getElementById('ts_log'); if (!pre) return;
+		var nearBottom = pre.scrollHeight - pre.scrollTop - pre.clientHeight < 60;
+		pre.textContent = (this.log || '').split('\n').filter(L.bind(function(line) { return !this.query || line.toLowerCase().indexOf(this.query) >= 0; }, this)).join('\n') || _('No matching log entries.');
+		if (nearBottom) pre.scrollTop = pre.scrollHeight;
+		var el = document.getElementById('ts_log_status'); if (el) el.textContent = (this.paused ? _('Paused') : nearBottom ? _('Following latest entries') : _('Auto-follow paused while scrolling')) + ' · ' + new Date().toLocaleTimeString();
+	},
+	handleSaveApply: null, handleSave: null, handleReset: null
 });

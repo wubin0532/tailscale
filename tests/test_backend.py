@@ -4,7 +4,9 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 BASE=ROOT/'luci-app-tailscale/root'
 CHECK=BASE/'usr/libexec/tailscale-route-check.awk'
-HELPER=(BASE/'usr/lib/tailscale-luci.sh').read_text().replace('. /lib/functions.sh 2>/dev/null || true', ':')
+if not __import__('shutil').which('flock'):
+ os.environ['PATH']=str(Path(__file__).parent)+':'+os.environ['PATH']
+HELPER=(BASE/'usr/lib/tailscale-luci.sh').read_text().replace('. /lib/functions.sh 2>/dev/null || true', ':').replace('. /usr/share/libubox/jshn.sh 2>/dev/null || true', ':')
 INIT=(BASE/'etc/init.d/tailscale').read_text().replace('. /usr/lib/tailscale-luci.sh', ':').replace('/etc/init.d/firewall reload','mock_reload')
 RPC=(BASE/'usr/libexec/rpcd/tailscale').read_text().split('\ncase "$1"')[0].replace('. /usr/share/libubox/jshn.sh', ':').replace('. /usr/lib/tailscale-luci.sh', ':').replace('/etc/init.d/tailscale','mock_init')
 def shell(code,env=None): return subprocess.run(['sh'],input=code,text=True,capture_output=True,env=env)
@@ -79,17 +81,17 @@ ts_migrate_config
   self.assertEqual(out,'Running');self.assertEqual((self.dir/'counter').read_text().strip(),'3')
  def test_backend_timeout(self): self.run_code('sleep() { :; }\nts_backend_state() { echo Starting; }\nts_wait_backend && exit 1\nexit 0\n')
  def test_operation_lock(self):
-  (self.dir/'luci-lock').mkdir();self.run_code('ts_apply && exit 1\nexit 0\n');self.assertTrue((self.dir/'luci-lock').exists());self.assertIn('Another',(self.dir/'luci-error').read_text())
+  self.run_code('ts_lock; (ts_apply && exit 1; exit 0)\n');self.assertIn('Another',(self.dir/'luci-error').read_text())
  def test_redaction(self):
   self.run_code("ts_error 'failed tskey-auth-sensitive123'\nexit 0\n");self.assertNotIn('sensitive123',(self.dir/'luci-error').read_text())
  def test_stopped_backend_resumes_without_reset(self):
-  out=self.run_code('ts_wait_backend() { TS_BACKEND_STATE=Stopped; }\nmock_cli() { echo "{}"; }\nTS_CLI=mock_cli\njsonfilter() { :; }\nts_run() { echo "$*"; }\nts_apply_locked\n')
+  out=self.run_code('ts_wait_backend() { TS_BACKEND_STATE=Stopped; }\nmock_cli() { echo "{}"; }\nTS_CLI=mock_cli\nts_pref() { :; }\njsonfilter() { :; }\nts_run() { echo "$*"; }\nts_apply_locked\n')
   self.assertIn('mock_cli set --accept-routes=false',out);self.assertTrue(out.endswith('mock_cli up'));self.assertNotIn('--reset',out)
  def test_control_server_change_requires_logout(self):
-  self.run_code('ts_wait_backend() { TS_BACKEND_STATE=Running; }\nmock_cli() { echo "{}"; }\nTS_CLI=mock_cli\njsonfilter() { echo https://old.example.com; }\nts_run() { echo UNEXPECTED; }\nts_apply_locked && exit 1\nexit 0\n')
+  self.run_code('ts_wait_backend() { TS_BACKEND_STATE=Running; }\nmock_cli() { echo "{}"; }\nTS_CLI=mock_cli\nts_pref() { echo https://old.example.com; }\njsonfilter() { echo https://old.example.com; }\nts_run() { echo UNEXPECTED; }\nts_apply_locked && exit 1\nexit 0\n')
   self.assertIn('Logout',(self.dir/'luci-error').read_text())
  def test_lock_cleanup_after_apply_failure(self):
-  self.run_code('ts_apply_locked() { return 7; }\nts_apply; result=$?\n[ "$result" = 7 ] && [ ! -d "$TS_RUN_DIR/luci-lock" ]\n')
+  self.run_code('ts_apply_locked() { return 7; }\nts_apply; result=$?\n[ "$result" = 7 ] && ! ts_busy\n')
  def test_stop_during_startup_cleans_operation_lock(self):
   code=self.common+'''
 ts_backend_state() { echo Starting; }
@@ -101,24 +103,31 @@ ts_apply
   for _ in range(100):
    if (self.dir/'ready').exists():break
    time.sleep(.01)
-  self.assertTrue((self.dir/'luci-lock').exists())
+  self.assertEqual(shell(self.common+'ts_busy',self.env).returncode,0)
   proc.send_signal(signal.SIGTERM)
   proc.wait(timeout=3)
-  self.assertFalse((self.dir/'luci-lock').exists())
+  self.assertEqual(shell(self.common+'ts_busy',self.env).returncode,1)
   proc.stdout.close();proc.stderr.close()
+ def test_cli_does_not_inherit_operation_locks(self):
+  script=self.dir/'check_fds.py'
+  script.write_text('import os\nfor fd in [7,8,9]:\n try: os.fstat(fd)\n except OSError: continue\n raise SystemExit(7)\n')
+  self.run_code('ts_lock; exec 8> "$TS_RUN_DIR/service.lock"; flock -n 8; exec 9> "$TS_RUN_DIR/snapshot.lock"; flock -n 9; ts_run python3 "'+str(script)+'"; r=$?; [ "$r" = 0 ]\n')
  def test_auth_file_private_and_removed_on_login_failure(self):
   self.run_code("ts_auth='tskey-auth-fixture'\nts_run() { for arg in \"$@\"; do case \"$arg\" in --auth-key=file:*) keyfile=${arg#--auth-key=file:}; [ -f \"$keyfile\" ] || return 88; python3 -c 'import os,sys;assert os.stat(sys.argv[1]).st_mode & 0o777 == 0o600' \"$keyfile\" || return 89;; esac; done; return 9; }\nts_login_worker; r=$?\n[ \"$r\" = 9 ] && [ -z \"$(ls \"$TS_RUN_DIR\"/authkey.* 2>/dev/null)\" ]\n")
 
 class RpcTests(unittest.TestCase):
  def run_rpc(self,code):
   with tempfile.TemporaryDirectory(prefix='tailscale-rpc-test-') as tmp:
-   pre='''\nCLI=mock_cli
+   pre=HELPER+'''\nCLI=mock_cli
 mock_cli() { return "$CASE_CODE"; }
 json_init() { :; }
 json_add_boolean() { echo "$1=$2"; }
 json_add_string() { [ "$CHECK_OUTPUT" != 1 ] || echo "$1=$2"; }
 json_dump() { :; }
 ts_clear_error() { :; }
+ts_invalidate() { :; }
+ts_capture() { "$@"; }
+wait_service() { :; }
 uci() {
  case "$1" in get) cat "$TS_RUN_DIR/enabled";; set) printf '%s' "${2#tailscale.settings.enabled=}" > "$TS_RUN_DIR/enabled";; commit) echo commit >> "$TS_RUN_DIR/events";; esac
 }
@@ -126,9 +135,15 @@ mock_init() { echo "$1" >> "$TS_RUN_DIR/events"; [ "$1" != "$FAIL_ACTION" ]; }
 jsonfilter() { echo "$ENABLED"; }
 '''
    Path(tmp,'enabled').write_text('0');p=shell(RPC+pre+code,os.environ|{'TS_RUN_DIR':tmp});self.assertEqual(p.returncode,0,p.stdout+p.stderr);return p.stdout.strip()
+ def test_service_lock_recovers_after_sigkill(self):
+  with tempfile.TemporaryDirectory(prefix='ts-rpc-kill-') as tmp:
+   p=shell(RPC+'\nservice_lock; kill -KILL $$\n',os.environ|{'TS_RUN_DIR':tmp})
+   self.assertNotEqual(p.returncode,0)
+   p=shell(RPC+'\nservice_lock\n',os.environ|{'TS_RUN_DIR':tmp})
+   self.assertEqual(p.returncode,0,p.stderr)
  def test_logout_exit_code(self): self.assertEqual(self.run_rpc('CASE_CODE=0; do_logout\nCASE_CODE=9; do_logout\n'),'success=1\nsuccess=0')
  def test_enable_commit_then_start(self): self.assertEqual(self.run_rpc('ENABLED=1; FAIL_ACTION=none; do_set_enabled <<EOF\n{}\nEOF\ncat "$TS_RUN_DIR/enabled"; echo; cat "$TS_RUN_DIR/events"\n'),'success=1\n1\ncommit\nenable\nstart')
- def test_start_failure_rollback(self): self.assertEqual(self.run_rpc('ENABLED=1; FAIL_ACTION=start; do_set_enabled <<EOF\n{}\nEOF\ncat "$TS_RUN_DIR/enabled"; echo; cat "$TS_RUN_DIR/events"\n'),'success=0\n0\ncommit\nenable\nstart\ncommit\ndisable')
+ def test_start_failure_rollback(self): self.assertEqual(self.run_rpc('ENABLED=1; FAIL_ACTION=start; do_set_enabled <<EOF\n{}\nEOF\ncat "$TS_RUN_DIR/enabled"; echo; cat "$TS_RUN_DIR/events"\n'),'success=0\n0\ncommit\nenable\nstart\ncommit\nstop\ndisable')
  def test_success_has_no_failure_message(self):
   self.assertEqual(self.run_rpc('CHECK_OUTPUT=1; ENABLED=1; FAIL_ACTION=none; do_set_enabled <<EOF\n{}\nEOF\n'),'success=1\noutput=')
  def test_invalid_enable_no_write(self): self.assertEqual(self.run_rpc('ENABLED=bad; do_set_enabled <<EOF\n{}\nEOF\n[ ! -f "$TS_RUN_DIR/events" ]\n'),'success=0')

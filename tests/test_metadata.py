@@ -8,7 +8,7 @@ class MetadataTests(unittest.TestCase):
    action=entry.get('action',{})
    if action.get('type')=='view':
     p=ROOT/'luci-app-tailscale/htdocs/luci-static/resources/view'/(action['path']+'.js')
-    self.assertTrue(p.is_file(),str(p));self.assertIn('-v123',str(p))
+    self.assertTrue(p.is_file(),str(p));self.assertIn('-v2',str(p))
  def test_rpc_acl_matches_methods(self):
   acl=json.loads((ROOT/'luci-app-tailscale/root/usr/share/rpcd/acl.d/luci-app-tailscale.json').read_text())['luci-app-tailscale']
   self.assertIn('set_enabled',acl['write']['ubus']['tailscale'])

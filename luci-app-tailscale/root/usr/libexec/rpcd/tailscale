@@ -6,30 +6,70 @@
 
 CLI=/usr/sbin/tailscale
 
+service_lock() {
+	umask 077; mkdir -p "$TS_RUN_DIR"
+	exec 8> "$TS_RUN_DIR/service.lock"
+	if ! flock -n 8; then
+		exec 8>&-
+		json_init; json_add_boolean success 0
+		json_add_string output "Another Tailscale operation is still running."; json_dump; return 1
+	fi
+}
+
+operation_lock() {
+	service_lock || return 1
+	if ! ts_lock; then
+		exec 8>&-
+		json_init; json_add_boolean success 0
+		json_add_string output "Another Tailscale operation is still running."; json_dump; return 1
+	fi
+}
+
+wait_service() {
+	local count=0 running
+	while [ "$count" -lt 10 ]; do
+		running=0; pidof tailscaled >/dev/null 2>&1 && running=1
+		[ "$running" != "$1" ] || return 0
+		sleep 1; count=$((count + 1))
+	done
+	return 1
+}
+
 get_status() {
 	local running=0 state="" authurl="" nodekey="" hostname="" dnsname="" userid="" loginname="" ips=""
 	pidof tailscaled >/dev/null 2>&1 && running=1
 
-	local raw prefs apply_error actual_routes accept=0 busy=0 online=0
-	raw=$($CLI status --json 2>/dev/null)
+	local raw apply_error actual_routes core_version fetched_at success=1 accept=0 busy=0 online=0
+	if [ "$running" -eq 1 ]; then ts_snapshot || success=0; else TS_SNAPSHOT_ERROR=""; TS_SNAPSHOT_STALE=0; fi
+	raw=$(cat "$TS_RUN_DIR/snapshot-status" 2>/dev/null)
+	# A stopped service must not show the previous identity or peer list.
+	[ "$running" -ne 0 ] || raw=""
 	if [ -n "$raw" ]; then
-		state=$(jsonfilter -s "$raw" -e '@.BackendState' 2>/dev/null)
-		[ "$(jsonfilter -s "$raw" -e '@.Self.Online' 2>/dev/null)" != true ] || online=1
-		authurl=$(jsonfilter -s "$raw" -e '@.AuthURL' 2>/dev/null)
-		nodekey=$(jsonfilter -s "$raw" -e '@.Self.PublicKey' 2>/dev/null)
-		hostname=$(jsonfilter -s "$raw" -e '@.Self.HostName' 2>/dev/null)
-		dnsname=$(jsonfilter -s "$raw" -e '@.Self.DNSName' 2>/dev/null)
-		userid=$(jsonfilter -s "$raw" -e '@.Self.UserID' 2>/dev/null)
-		[ -n "$userid" ] && loginname=$(jsonfilter -s "$raw" -e "@.User['$userid'].LoginName" 2>/dev/null)
-		ips=$(jsonfilter -s "$raw" -e '@.Self.TailscaleIPs[*]' 2>/dev/null | tr '\n' ' ')
+		state=$(jsonfilter -i "$TS_RUN_DIR/snapshot-status" -e '@.BackendState' 2>/dev/null)
+		[ "$(jsonfilter -i "$TS_RUN_DIR/snapshot-status" -e '@.Self.Online' 2>/dev/null)" != true ] || online=1
+		authurl=$(jsonfilter -i "$TS_RUN_DIR/snapshot-status" -e '@.AuthURL' 2>/dev/null)
+		nodekey=$(jsonfilter -i "$TS_RUN_DIR/snapshot-status" -e '@.Self.PublicKey' 2>/dev/null)
+		hostname=$(jsonfilter -i "$TS_RUN_DIR/snapshot-status" -e '@.Self.HostName' 2>/dev/null)
+		dnsname=$(jsonfilter -i "$TS_RUN_DIR/snapshot-status" -e '@.Self.DNSName' 2>/dev/null)
+		userid=$(jsonfilter -i "$TS_RUN_DIR/snapshot-status" -e '@.Self.UserID' 2>/dev/null)
+		[ -n "$userid" ] && loginname=$(jsonfilter -i "$TS_RUN_DIR/snapshot-status" -e "@.User['$userid'].LoginName" 2>/dev/null)
+		ips=$(jsonfilter -i "$TS_RUN_DIR/snapshot-status" -e '@.Self.TailscaleIPs[*]' 2>/dev/null | tr '\n' ' ')
 	fi
 
-	prefs=$($CLI debug prefs 2>/dev/null)
-	actual_routes=$(printf '%s' "$prefs" | jsonfilter -e '@.AdvertiseRoutes[*]' 2>/dev/null | tr '\n' ' ')
-	[ "$(printf '%s' "$prefs" | jsonfilter -e '@.RouteAll' 2>/dev/null)" != true ] || accept=1
-	[ ! -d "$TS_RUN_DIR/luci-lock" ] || busy=1
+	actual_routes=$(ts_pref routes | tr '\n' ' ')
+	[ "$(ts_pref accept)" != true ] || accept=1
+	core_version=$(cat /usr/share/tailscale-luci/core-version 2>/dev/null)
+	fetched_at=$(jsonfilter -i "$TS_RUN_DIR/snapshot-status" -e '@._LuCI.fetched_at' 2>/dev/null)
+	[ "$running" -ne 0 ] || { actual_routes=""; accept=0; fetched_at=""; }
+	ts_busy && busy=1
 	apply_error=$(cat "$TS_RUN_DIR/firewall-error" "$TS_RUN_DIR/luci-error" 2>/dev/null)
 	json_init
+	json_add_boolean success "$success"
+	json_add_boolean stale "${TS_SNAPSHOT_STALE:-0}"
+	json_add_string error "$TS_SNAPSHOT_ERROR"
+	json_add_string fetched_at "$fetched_at"
+	json_add_string plugin_version "v2.0"
+	json_add_string core_version "$core_version"
 	json_add_string apply_error "$apply_error"
 	json_add_string actual_routes "${actual_routes% }"
 	json_add_boolean accept_routes "$accept"
@@ -43,8 +83,10 @@ get_status() {
 	json_add_string dns_name "$dnsname"
 	json_add_string user "$loginname"
 	json_add_string ips "${ips% }"
-	json_add_string raw "$raw"
-	json_dump
+	json_dump | sed '$s/}[[:space:]]*$//'
+	printf ',"raw":'
+	printf '%s\n' "$raw" | ts_json_quote
+	printf '}\n'
 }
 
 get_log() {
@@ -56,49 +98,58 @@ get_log() {
 }
 
 get_netcheck() {
-	local out
-	out=$($CLI netcheck 2>&1)
+	local out result=0
+	out=$(ts_capture "$CLI" netcheck) || result=$?
 	json_init
+	if [ "$result" -eq 0 ]; then json_add_boolean success 1; else json_add_boolean success 0; fi
 	json_add_string output "$out"
 	json_dump
 }
 
 do_ping() {
-	local input host out
+	local input host out result=0
 	read -r input
 	host=$(jsonfilter -s "$input" -e '@.host' 2>/dev/null)
 	case "$host" in
 		''|-*|*[!0-9a-zA-Z.:-]*)
 			json_init
+			json_add_boolean success 0
+			json_add_int exit_code 2
 			json_add_string output "invalid host"
 			json_dump
 			return
 			;;
 	esac
-	out=$($CLI ping --c 2 --timeout 5s "$host" 2>&1)
+	out=$(ts_capture "$CLI" ping --c 2 --timeout 5s "$host") || result=$?
 	json_init
+	if [ "$result" -eq 0 ]; then json_add_boolean success 1; else json_add_boolean success 0; fi
+	json_add_int exit_code "$result"
 	json_add_string output "$out"
 	json_dump
 }
 
-do_login() {
+do_login() (
+	service_lock || return
+	trap 'exit 1' HUP INT TERM
+	trap 'exec 8>&-' EXIT
 	local result=0
 	ts_login || result=$?
 	json_init
 	if [ "$result" -eq 0 ]; then json_add_boolean success 1; else json_add_boolean success 0; fi
 	json_add_string output "$(cat "$TS_RUN_DIR/luci-error" 2>/dev/null)"
 	json_dump
-}
+)
 
-do_uninstall() {
+do_uninstall() (
 	# logout, stop service (stop_service runs fw_cleanup), wipe state & config
-	if [ -d "$TS_RUN_DIR/luci-lock" ]; then
-		json_init; json_add_boolean success 0
-		json_add_string output "Another Tailscale operation is still running."; json_dump
-		return
-	fi
+	operation_lock || return
+	trap 'exit 1' HUP INT TERM
+	trap 'exec 7>&-; exec 8>&-' EXIT
 	local out result
-	$CLI logout >/dev/null 2>&1
+	out=$(ts_capture "$CLI" logout); result=$?
+	if [ "$result" -ne 0 ]; then
+		json_init; json_add_boolean success 0; json_add_string output "$out"; json_dump; return
+	fi
 	out=$(/etc/init.d/tailscale stop 2>&1 && /etc/init.d/tailscale disable 2>&1); result=$?
 	if [ "$result" -ne 0 ]; then
 		json_init; json_add_boolean success 0; json_add_string output "$out"; json_dump
@@ -109,36 +160,42 @@ do_uninstall() {
 	json_init
 	json_add_boolean success 1
 	json_dump
-}
+)
 
-do_logout() {
+do_logout() (
 	local out result
-	if [ -d "$TS_RUN_DIR/luci-lock" ]; then
-		json_init; json_add_boolean success 0
-		json_add_string output "Another Tailscale operation is still running."; json_dump
-		return
-	fi
-	out=$($CLI logout 2>&1); result=$?
+	operation_lock || return
+	trap 'exit 1' HUP INT TERM
+	trap 'exec 7>&-; exec 8>&-' EXIT
+	out=$(ts_capture "$CLI" logout); result=$?
 	if [ "$result" -eq 0 ]; then
 		# A saved reusable key must not undo an explicit logout at next boot.
 		uci -q delete tailscale.settings.auth_key
 		uci commit tailscale
+		ts_invalidate
 		ts_clear_error
 	fi
 	json_init
 	if [ "$result" -eq 0 ]; then json_add_boolean success 1; else json_add_boolean success 0; fi
 	json_add_string output "$out"
 	json_dump
-}
+)
 
-do_set_enabled() {
+do_set_enabled() (
 	local input enabled old result=0 out
 	read -r input
 	enabled=$(jsonfilter -s "$input" -e '@.enabled')
 	case "$enabled" in 0|1) :;; *)
 		json_init; json_add_boolean success 0; json_add_string output "Invalid enabled value"; json_dump; return;;
 	esac
+	service_lock || return
+	trap 'exit 1' HUP INT TERM
+	trap 'exec 8>&-' EXIT
+	if ts_busy; then
+		json_init; json_add_boolean success 0; json_add_string output "Another Tailscale operation is still running."; json_dump; return
+	fi
 	old=$(uci -q get tailscale.settings.enabled)
+	ts_invalidate
 	uci set "tailscale.settings.enabled=$enabled" && uci commit tailscale || result=$?
 	if [ "$result" -eq 0 ]; then
 		if [ "$enabled" = 1 ]; then
@@ -147,9 +204,12 @@ do_set_enabled() {
 			out=$(/etc/init.d/tailscale stop 2>&1 && /etc/init.d/tailscale disable 2>&1); result=$?
 		fi
 	fi
+	if [ "$result" -eq 0 ] && ! wait_service "$enabled"; then
+		result=1; out="Service did not reach the requested state."
+	fi
 	if [ "$result" -ne 0 ]; then
 		uci set "tailscale.settings.enabled=${old:-0}"; uci commit tailscale
-		if [ "$old" = 1 ]; then /etc/init.d/tailscale enable; else /etc/init.d/tailscale disable; fi
+		if [ "$old" = 1 ]; then /etc/init.d/tailscale enable; /etc/init.d/tailscale start; else /etc/init.d/tailscale stop; /etc/init.d/tailscale disable; fi
 	fi
 	[ "$result" -ne 0 ] || out=""
 	if [ "$result" -ne 0 ] && [ -z "$out" ]; then out="Service action failed (exit $result)."; fi
@@ -157,7 +217,7 @@ do_set_enabled() {
 	if [ "$result" -eq 0 ]; then json_add_boolean success 1; else json_add_boolean success 0; fi
 	json_add_string output "$out"
 	json_dump
-}
+)
 
 case "$1" in
 	list)

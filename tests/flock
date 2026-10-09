@@ -1,0 +1,11 @@
+#!/usr/bin/env python3
+# macOS test helper for the Linux util-linux flock contract.
+import fcntl, os, subprocess, sys
+args=sys.argv[1:]
+nonblocking=args.pop(0)=='-n'
+target=args.pop(0)
+file=None
+fd=int(target) if target.isdigit() else (file:=open(target,'a')).fileno()
+try: fcntl.flock(fd,fcntl.LOCK_EX | (fcntl.LOCK_NB if nonblocking else 0))
+except BlockingIOError: sys.exit(1)
+if args: sys.exit(subprocess.call(args))
