@@ -67,7 +67,7 @@ function findButton(root){if(root.tag==='button')return root;for(const c of root
  await check('exit addresses reject invalid IPs and retain device names',async()=>{
   const v=options.exit_node.validate;
   for(const value of [':','999.90.126.80','-Home','Home..example','192.168.199.0/24'])assert.notEqual(v('',value),true,value);
-  for(const value of ['','Home','Home.example.ts.net','fd12::1','100.90.126.80'])assert.equal(v('',value),true,value);
+  for(const value of ['','Home','Home.example.ts.net','fd12::1','100.90.126.80','auto:any'])assert.equal(v('',value),true,value);
  });
  await check('requested firewall defaults and empty NAT lists',async()=>{assert.equal(options.input.default,'REJECT');assert.equal(options.output.default,'ACCEPT');assert.equal(options.forward.default,'REJECT');assert.equal(options.tailscale_to_lan.default,'0');assert.equal(options.masq_src.default,undefined);assert.equal(options.masq_dest.default,undefined);});
  let logCalls=0;const logs=load('log',{view:{extend:x=>x},rpc:{declare:()=>()=>{logCalls++;return Promise.resolve({log:'first\nerror Home'})}},poll:{add(){}},ui:{addNotification(){}},navigator:{}});logs.render();await new Promise(r=>setImmediate(r));
