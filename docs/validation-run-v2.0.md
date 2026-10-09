@@ -5,7 +5,7 @@
 - 安装器版本 `2.0.0-r2`；插件界面仍为 `v2.0`。
 - 上游 Tailscale `1.104.1`，源码提交 `7f4efe814ff14b064eb080344389ceb9ea2d37ac`。
 - 上游源码归档 SHA-256：`bf868b2b1a46b9485d55bcda12c2d7573279ce4474bc6d607f42f1495db36ed8`。
-- 使用官方构建脚本 `--box --strip`，唯一功能标签 `ts_include_cli`；未使用 `ts_omit_*`。Go `1.27.1`、CGO 关闭、UPX `5.2.1`。
+- 使用官方构建脚本 `--box --strip`，唯一功能标签 `ts_include_cli`；未使用 `ts_omit_*`。Go `1.27.1`、CGO 关闭、UPX `5.2.1`。关闭父仓库 VCS 自动注入，版本信息明确嵌入实际上游提交。
 - 每个包只含一份核心文件，`tailscale` 为 `tailscaled` 的相对符号链接。
 - 每个架构离线携带 21 个用户态依赖包的运行文件，版本和 SHA-256 固定在 `dependencies.lock.json`。私有加载器与库不覆盖固件系统库。
 - 固件框架、LuCI、fw4 和内核 TUN 支持作为安装前检查的固件基础，不宣称安装器包含跨内核通用模块。

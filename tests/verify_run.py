@@ -54,6 +54,7 @@ def check(path,execute=False):
    subprocess.run([os.environ.get('UPX_BIN','upx'),'-d',str(binary)],check=True,stdout=subprocess.DEVNULL)
    build_info=subprocess.check_output(['go','version','-m',str(binary)],text=True)
    assert '-tags=ts_include_cli' in build_info and 'ts_omit_' not in build_info,build_info
+   assert 'vcs.revision=' not in build_info,build_info
    assert 'CGO_ENABLED=0' in build_info and 'go'+ENV['GO_VERSION'] in build_info,build_info
    if execute:
     # QEMU cannot reliably execute an UPX self-extractor; check the identical decoded ELF.
@@ -61,6 +62,7 @@ def check(path,execute=False):
     env={**os.environ,'TS_BE_CLI':'true'}
     version=subprocess.check_output(command+[str(binary),'version'],env=env,text=True)
     assert version.splitlines()[0]==ENV['CORE_VERSION'],version
+    assert ENV['CORE_SOURCE_COMMIT'] in version,version
     for feature in ['netcheck','ping','ssh','file','serve','funnel','set','up','login','logout']:
      result=subprocess.run(command+[str(binary),feature,'--help'],env=env,capture_output=True,text=True)
      assert result.returncode==0,(arch,feature,result.stderr)
