@@ -96,6 +96,14 @@ class InstallerTransactionTests(unittest.TestCase):
   self.assertEqual((self.router/'usr/sbin/tailscaled').read_text(),'old core')
   self.assertEqual((self.router/'usr/lib/opkg/status').read_text(),record)
   self.assertIn('/usr/sbin/tailscaled',(self.router/'usr/lib/opkg/info/tailscale-luci.list').read_text())
+ def test_failed_upgrade_restores_previous_autostart_links(self):
+  rc=self.router/'etc/rc.d';rc.mkdir()
+  (rc/'S95tailscale').symlink_to('../init.d/tailscale')
+  script='#!/bin/sh\ncase "$1" in enable) ln -s ../init.d/tailscale "'+str(rc)+'/S99tailscale";; disable) rm -f "'+str(rc)+'/S99tailscale";; start) exit 1;; esac\nexit 0\n'
+  write(self.stage/'data/etc/init.d/tailscale',script,True)
+  result=self.install();self.assertNotEqual(result.returncode,0,result.stdout+result.stderr)
+  self.assertTrue((rc/'S95tailscale').is_symlink())
+  self.assertFalse((rc/'S99tailscale').is_symlink())
  def test_missing_framework_leaves_old_service(self):
   (self.router/'etc/rc.common').unlink();result=self.install()
   self.assertNotEqual(result.returncode,0);self.assertEqual((self.router/'usr/sbin/tailscaled').read_text(),'old core')

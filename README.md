@@ -17,7 +17,7 @@ OpenWrt/LibWrt 的 Tailscale 管理插件，插件界面版本 **v2.0**，离线
 
 ## 离线安装与升级
 
-下载 [Releases](https://github.com/wubin0532/tailscale/releases/tag/v2.0) 中与 CPU 对应的 `.run` 及 `SHA256SUMS-v2.0-run.txt`。新安装器经过真机验证后才替换公开交付包；请以 Release 资产和验证记录为准。
+下载 [Releases](https://github.com/wubin0532/tailscale/releases/tag/v2.0) 中与 CPU 对应的 `.run` 及 `SHA256SUMS-v2.0-run.txt`。本次由用户自行在 Home x86-64 真机测试；构建验证通过后直接更新 Release，尚未标为真机通过。
 
 ```sh
 uname -m

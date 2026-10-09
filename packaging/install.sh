@@ -92,6 +92,7 @@ rollback() {
     if [ "$changed" = 1 ]; then
         echo "Installation failed; restoring previous files from $backup" >&2
         /etc/init.d/tailscale stop 7>&- 8>&- 6>&- >/dev/null 2>&1 || true
+        /etc/init.d/tailscale disable 7>&- 8>&- 6>&- >/dev/null 2>&1 || true
         while IFS= read -r path; do rm -f "/$path"; done < "$backup/managed"
         tar -xzf "$backup/before.tar.gz" -C /
         if [ -s "$backup/opkg-record" ]; then
