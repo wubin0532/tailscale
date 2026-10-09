@@ -74,7 +74,9 @@ return view.extend({
 
 		o = s.option(form.DynamicList, 'advertise_routes', _('Share this router\'s local subnets'),
 			help(_('Let other Tailscale devices access networks behind this router. On the home router, enter 192.168.199.0/24. On the office router, leave empty if you only need to access home. Enter a network address such as 192.168.123.0/24, not the router address 192.168.123.1/24. Each route also needs approval in the Tailscale admin console.')));
-		o.datatype = 'cidr';
+		// LuCI's cidr datatype changes Validator.value to the prefix length.
+		// Run the complete CIDR check here so our callback receives the address.
+		o.datatype = 'string';
 		o.validate = function(section, value) { return validateRoute(value); };
 		o.rmempty = true;
 		var lan = lanCidr();
@@ -89,8 +91,14 @@ return view.extend({
 			help(_('Leave empty to use official Tailscale. Fill in a complete HTTPS URL only when using your own Headscale server. Do not enter a username, router IP or subnet here.')));
 		o.placeholder = 'https://headscale.example.com';
 		o.validate = function(section, value) {
-		return !value || /^https:\/\/[^\s/?#]+(?::\d+)?(?:\/[^\s]*)?$/.test(value)
-			? true : _('Enter a complete HTTPS URL, or leave empty for official Tailscale.');
+			if (!value) return true;
+			try {
+				var url = new URL(value);
+				if (/^https:\/\//.test(value) && !/\s/.test(value) && url.hostname &&
+					!url.username && !url.password && !url.search && !url.hash)
+					return true;
+			} catch (err) {}
+			return _('Enter a complete HTTPS URL, or leave empty for official Tailscale.');
 	};
 		o.rmempty = true;
 
@@ -111,8 +119,12 @@ return view.extend({
 			help(_('Optional: route this router\'s internet traffic through an approved exit node. Enter that device\'s Tailscale IP (100.x.x.x) or name, not a LAN IP or subnet such as 192.168.123.0/24. Leave empty for normal internet access and for office-to-home subnet access.')));
 		o.placeholder = _('Leave empty for normal internet access');
 		o.validate = function(section, value) {
-		return !value || /^[a-zA-Z0-9.:-]+$/.test(value)
-			? true : _('Enter the exit node IP or device name, not a subnet.');
+			if (!value || validation.parseIPv4(value) || validation.parseIPv6(value)) return true;
+			var name = value.replace(/\.$/, '');
+			if (name.length <= 253 && !/^[\d.]+$/.test(name) && name.split('.').every(function(label) {
+				return /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/.test(label);
+			})) return true;
+			return _('Enter the exit node IP or device name, not a subnet.');
 	};
 		o.rmempty = true;
 

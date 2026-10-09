@@ -49,7 +49,26 @@ function findButton(root){if(root.tag==='button')return root;for(const c of root
  const parseIPv6=s=>s==='fd12::'?[0xfd12,0,0,0,0,0,0,0]:s==='fd12::1'?[0xfd12,0,0,0,0,0,0,1]:null;
  const settings=load('settings',{view:{extend:x=>x},rpc:{declare:()=>()=>Promise.resolve({})},poll:{add(){}},form,uci:{get:()=>null,load:()=>Promise.resolve()},validation:{parseIPv4,parseIPv6}});await settings.render();
  await check('IPv4 and IPv6 route validation rejects host bits',async()=>{const v=options.advertise_routes.validate;assert.equal(v('','192.168.199.0/24'),true);assert.notEqual(v('','192.168.199.1/24'),true);assert.equal(v('','fd12::/64'),true);assert.notEqual(v('','fd12::1/64'),true);});
+ await check('route datatype preserves input for the LuCI custom validator',async()=>{
+  // LuCI cidr4() calls apply(ip4prefix, prefix), which changes Validator.value.
+  // Validator.validate() then passes that changed value to the custom callback.
+  const o=options.advertise_routes;
+  const throughWidget=value=>o.validate('',o.datatype==='cidr'?value.split('/')[1]:value);
+  assert.equal(o.datatype,'string');
+  for(const value of ['192.168.123.0/24','192.168.199.0/24','100.90.126.80/32','0.0.0.0/0','fd12::/64','fd12::1/128'])assert.equal(throughWidget(value),true,value);
+  for(const value of ['192.168.123.1/24','192.168.123.0/33','999.168.123.0/24','24','fd12::1/64'])assert.notEqual(throughWidget(value),true,value);
+ });
  await check('exit and control server input validation',async()=>{assert.notEqual(options.exit_node.validate('','192.168.123.0/24'),true);assert.equal(options.exit_node.validate('','100.74.174.72'),true);assert.notEqual(options.login_server.validate('','root'),true);assert.equal(options.login_server.validate('','https://headscale.example.com'),true);});
+ await check('invalid server hosts, ports and credentials are rejected',async()=>{
+  const v=options.login_server.validate;
+  for(const value of ['https://:','https://headscale.example.com:99999','https://user:pass@headscale.example.com','http://headscale.example.com','https://headscale.example.com/#fragment'])assert.notEqual(v('',value),true,value);
+  for(const value of ['', 'https://headscale.example.com:8443/path','https://[fd12::1]:443'])assert.equal(v('',value),true,value);
+ });
+ await check('exit addresses reject invalid IPs and retain device names',async()=>{
+  const v=options.exit_node.validate;
+  for(const value of [':','999.90.126.80','-Home','Home..example','192.168.199.0/24'])assert.notEqual(v('',value),true,value);
+  for(const value of ['','Home','Home.example.ts.net','fd12::1','100.90.126.80'])assert.equal(v('',value),true,value);
+ });
  await check('requested firewall defaults and empty NAT lists',async()=>{assert.equal(options.input.default,'REJECT');assert.equal(options.output.default,'ACCEPT');assert.equal(options.forward.default,'REJECT');assert.equal(options.tailscale_to_lan.default,'0');assert.equal(options.masq_src.default,undefined);assert.equal(options.masq_dest.default,undefined);});
  let logCalls=0;const logs=load('log',{view:{extend:x=>x},rpc:{declare:()=>()=>{logCalls++;return Promise.resolve({log:'first\nerror Home'})}},poll:{add(){}},ui:{addNotification(){}},navigator:{}});logs.render();await new Promise(r=>setImmediate(r));
  await check('paused log skips poll and retains text',async()=>{logs.paused=true;const before=logCalls;await logs.updateLog();assert.equal(logCalls,before);assert.match(nodes.ts_log.textContent,/first/);});
