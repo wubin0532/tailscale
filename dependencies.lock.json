@@ -1,0 +1,606 @@
+{
+  "openwrt": "24.10.4",
+  "architectures": {
+    "arm64": [
+      {
+        "Package": "ca-bundle",
+        "Version": "20260816-r1",
+        "License": "GPL-2.0-or-later MPL-2.0",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/aarch64_cortex-a53/base/ca-bundle_20260816-r1_all.ipk",
+        "SHA256sum": "2a1f0df6cb3b6ef8ee88c9add5a1d23aa8ffdcee6bb814d891e4d8bbcc1c3eae"
+      },
+      {
+        "Package": "curl",
+        "Version": "8.22.0-r1",
+        "License": "MIT",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/aarch64_cortex-a53/packages/curl_8.22.0-r1_aarch64_cortex-a53.ipk",
+        "SHA256sum": "2b9ed768f0a9644fa122ff7f7a89d095e1e3ea57847f0d8d3785ae52de421201"
+      },
+      {
+        "Package": "flock",
+        "Version": "2.40.2-r1",
+        "License": "GPL-2.0-only",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/aarch64_cortex-a53/base/flock_2.40.2-r1_aarch64_cortex-a53.ipk",
+        "SHA256sum": "10ee5cdc5faa10d5cc8c2904b8fee4a184f127db0536ab8da0d6502be9991869"
+      },
+      {
+        "Package": "ip-full",
+        "Version": "6.11.0-r1",
+        "License": "GPL-2.0",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/aarch64_cortex-a53/base/ip-full_6.11.0-r1_aarch64_cortex-a53.ipk",
+        "SHA256sum": "13da5b808e0ab7087be4fbb9e8616206280e04f6ffe33af5cc85ae445a00cd67"
+      },
+      {
+        "Package": "jshn",
+        "Version": "2025.07.23~49056d17-r1",
+        "License": "ISC",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/aarch64_cortex-a53/base/jshn_2025.07.23~49056d17-r1_aarch64_cortex-a53.ipk",
+        "SHA256sum": "304ab1c368deb6f3064e9398e46fdaffb9359fca2bd40a2d9a2c72b47ce986ad"
+      },
+      {
+        "Package": "jsonfilter",
+        "Version": "2025.04.18~8a86fb78-r1",
+        "License": "ISC",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/aarch64_cortex-a53/base/jsonfilter_2025.04.18~8a86fb78-r1_aarch64_cortex-a53.ipk",
+        "SHA256sum": "8a1c331e1588c3465f6d7cdc00e481f484b39b09da1365bf97c9d36580f70d7c"
+      },
+      {
+        "Package": "libblobmsg-json20240329",
+        "Version": "2025.07.23~49056d17-r1",
+        "License": "ISC",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/aarch64_cortex-a53/base/libblobmsg-json20240329_2025.07.23~49056d17-r1_aarch64_cortex-a53.ipk",
+        "SHA256sum": "bc832221b981ee864a72d3a4ea51e19c4e84eef41a45a773aef4a4bf2ec3eee0"
+      },
+      {
+        "Package": "libbpf1",
+        "Version": "1.5.0-r1",
+        "License": "LGPL-2.1 OR BSD-2-Clause",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/aarch64_cortex-a53/base/libbpf1_1.5.0-r1_aarch64_cortex-a53.ipk",
+        "SHA256sum": "007211e8c9f0d9f09fb59824623705a0bbab3f65dfda89fdee0a8c47c5acd465"
+      },
+      {
+        "Package": "libc",
+        "Version": "1.2.5-r4",
+        "License": "MIT",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/targets/qualcommax/ipq807x/packages/libc_1.2.5-r4_aarch64_cortex-a53.ipk",
+        "SHA256sum": "ab8925db4ea8045eb4d42014a29d9e3edbc355ec27cd0572f7d31664fbee0403"
+      },
+      {
+        "Package": "libcurl4",
+        "Version": "8.22.0-r1",
+        "License": "MIT",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/aarch64_cortex-a53/packages/libcurl4_8.22.0-r1_aarch64_cortex-a53.ipk",
+        "SHA256sum": "da2bbbd958a30f4dc4a725f5295748115307dce80926339b5d423f73c9345545"
+      },
+      {
+        "Package": "libelf1",
+        "Version": "0.192-r1",
+        "License": "GPL-2.0-or-later OR LGPL-3.0-or-later",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/aarch64_cortex-a53/base/libelf1_0.192-r1_aarch64_cortex-a53.ipk",
+        "SHA256sum": "827a65995fea49639f689b0c456717ca7802c8af5541dd87f64baa0d08a35461"
+      },
+      {
+        "Package": "libgcc1",
+        "Version": "13.3.0-r4",
+        "License": "GPL-3.0-with-GCC-exception",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/targets/qualcommax/ipq807x/packages/libgcc1_13.3.0-r4_aarch64_cortex-a53.ipk",
+        "SHA256sum": "1e35864dcef139ff9f032e974faef586ebf7e7104434b1d76260b639aca8d87d"
+      },
+      {
+        "Package": "libjson-c5",
+        "Version": "0.18-r1",
+        "License": "MIT",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/aarch64_cortex-a53/base/libjson-c5_0.18-r1_aarch64_cortex-a53.ipk",
+        "SHA256sum": "e790b3c2227707201c70e6710b9d152697db0d2a7120f7fd8ce230e81d79186f"
+      },
+      {
+        "Package": "libmbedtls21",
+        "Version": "3.6.7-r1",
+        "License": "GPL-2.0-or-later",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/aarch64_cortex-a53/base/libmbedtls21_3.6.7-r1_aarch64_cortex-a53.ipk",
+        "SHA256sum": "9fc05f6d077f4c86f482c36b0485c0e8a1b4a93459d46db5abf343c7eb43ce3a"
+      },
+      {
+        "Package": "libmnl0",
+        "Version": "1.0.5-r1",
+        "License": "LGPL-2.1+",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/aarch64_cortex-a53/base/libmnl0_1.0.5-r1_aarch64_cortex-a53.ipk",
+        "SHA256sum": "1ab7b380c574378a6f101208b8ceb837df24a781471613f9c9b579e4400759bb"
+      },
+      {
+        "Package": "libnghttp2-14",
+        "Version": "1.63.0-r1",
+        "License": "MIT",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/aarch64_cortex-a53/packages/libnghttp2-14_1.63.0-r1_aarch64_cortex-a53.ipk",
+        "SHA256sum": "223940a579c56d80de45a388c1f40adf02a52a118e44201edb1af3ada84c8bf1"
+      },
+      {
+        "Package": "libnl-tiny1",
+        "Version": "2025.03.19~c0df580a-r1",
+        "License": "LGPL-2.1",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/aarch64_cortex-a53/base/libnl-tiny1_2025.03.19~c0df580a-r1_aarch64_cortex-a53.ipk",
+        "SHA256sum": "ba7491484d959045f1b8ea0606b1d3f0c468641dcf1c3fb7f7537f719f37584f"
+      },
+      {
+        "Package": "libpthread",
+        "Version": "1.2.5-r4",
+        "License": "GPL-3.0-with-GCC-exception",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/targets/qualcommax/ipq807x/packages/libpthread_1.2.5-r4_aarch64_cortex-a53.ipk",
+        "SHA256sum": "85f571622650ed51c0ebcae3f1bf0595d2928c3bd803104292a64e6bedc8a11d"
+      },
+      {
+        "Package": "librt",
+        "Version": "1.2.5-r4",
+        "License": "GPL-3.0-with-GCC-exception",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/targets/qualcommax/ipq807x/packages/librt_1.2.5-r4_aarch64_cortex-a53.ipk",
+        "SHA256sum": "be3f16614840ddc300e25167a1c1dd3e8557483e5d523191b54eee51beee6f8f"
+      },
+      {
+        "Package": "libubox20240329",
+        "Version": "2025.07.23~49056d17-r1",
+        "License": "ISC",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/aarch64_cortex-a53/base/libubox20240329_2025.07.23~49056d17-r1_aarch64_cortex-a53.ipk",
+        "SHA256sum": "52c4370d186d631eb4257740c630205264715765b36312b53e2b4b2c64444bd3"
+      },
+      {
+        "Package": "zlib",
+        "Version": "1.3.1-r1",
+        "License": "Zlib",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/aarch64_cortex-a53/base/zlib_1.3.1-r1_aarch64_cortex-a53.ipk",
+        "SHA256sum": "0af50c5a3c4a177a52dff492ef11bda63e744d1d888bada764ebfd34bf01dd24"
+      }
+    ],
+    "arm": [
+      {
+        "Package": "ca-bundle",
+        "Version": "20260816-r1",
+        "License": "GPL-2.0-or-later MPL-2.0",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/arm_cortex-a7_neon-vfpv4/base/ca-bundle_20260816-r1_all.ipk",
+        "SHA256sum": "2a1f0df6cb3b6ef8ee88c9add5a1d23aa8ffdcee6bb814d891e4d8bbcc1c3eae"
+      },
+      {
+        "Package": "curl",
+        "Version": "8.22.0-r1",
+        "License": "MIT",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/arm_cortex-a7_neon-vfpv4/packages/curl_8.22.0-r1_arm_cortex-a7_neon-vfpv4.ipk",
+        "SHA256sum": "8a1c01ab9476e4480c7daaa72f3d37b22ae52d2fd3f936c8abac1b3a6b7703a0"
+      },
+      {
+        "Package": "flock",
+        "Version": "2.40.2-r1",
+        "License": "GPL-2.0-only",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/arm_cortex-a7_neon-vfpv4/base/flock_2.40.2-r1_arm_cortex-a7_neon-vfpv4.ipk",
+        "SHA256sum": "c8c72612534a76bb7719a7858ad41574adaa4c7dd5bd8a67c931076cc589d130"
+      },
+      {
+        "Package": "ip-full",
+        "Version": "6.11.0-r1",
+        "License": "GPL-2.0",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/arm_cortex-a7_neon-vfpv4/base/ip-full_6.11.0-r1_arm_cortex-a7_neon-vfpv4.ipk",
+        "SHA256sum": "66c99aac4f6e67606d52a74c864dc687e85c56062f797dc115250542c94bb584"
+      },
+      {
+        "Package": "jshn",
+        "Version": "2025.07.23~49056d17-r1",
+        "License": "ISC",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/arm_cortex-a7_neon-vfpv4/base/jshn_2025.07.23~49056d17-r1_arm_cortex-a7_neon-vfpv4.ipk",
+        "SHA256sum": "5d42e4e37073755e88aa2dcb1e94caac2f025db5a3d8f78053302d713269b784"
+      },
+      {
+        "Package": "jsonfilter",
+        "Version": "2025.04.18~8a86fb78-r1",
+        "License": "ISC",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/arm_cortex-a7_neon-vfpv4/base/jsonfilter_2025.04.18~8a86fb78-r1_arm_cortex-a7_neon-vfpv4.ipk",
+        "SHA256sum": "c213d9cfbb763dbaedb60f5fb174424710ad772d70e4fd15d9e50b4ff76c58c7"
+      },
+      {
+        "Package": "libblobmsg-json20240329",
+        "Version": "2025.07.23~49056d17-r1",
+        "License": "ISC",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/arm_cortex-a7_neon-vfpv4/base/libblobmsg-json20240329_2025.07.23~49056d17-r1_arm_cortex-a7_neon-vfpv4.ipk",
+        "SHA256sum": "66eed8166ec5967ba62d8eb1bbbd890f24c1b7583d394be452ce35d6ff417cd9"
+      },
+      {
+        "Package": "libbpf1",
+        "Version": "1.5.0-r1",
+        "License": "LGPL-2.1 OR BSD-2-Clause",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/arm_cortex-a7_neon-vfpv4/base/libbpf1_1.5.0-r1_arm_cortex-a7_neon-vfpv4.ipk",
+        "SHA256sum": "de7e2e1a63bd7022e06283e87b563ae3794ecce00d484aadb30793fb58fe310d"
+      },
+      {
+        "Package": "libc",
+        "Version": "1.2.5-r4",
+        "License": "MIT",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/targets/ipq40xx/generic/packages/libc_1.2.5-r4_arm_cortex-a7_neon-vfpv4.ipk",
+        "SHA256sum": "73661d2fcf2e804445cdd8dec5655de22142b44c885ea9ba01140f16af7965cf"
+      },
+      {
+        "Package": "libcurl4",
+        "Version": "8.22.0-r1",
+        "License": "MIT",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/arm_cortex-a7_neon-vfpv4/packages/libcurl4_8.22.0-r1_arm_cortex-a7_neon-vfpv4.ipk",
+        "SHA256sum": "0ff81eba323ace994ff9a9c07ef4f3108f101e3bfd1c750060049e111c88221c"
+      },
+      {
+        "Package": "libelf1",
+        "Version": "0.192-r1",
+        "License": "GPL-2.0-or-later OR LGPL-3.0-or-later",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/arm_cortex-a7_neon-vfpv4/base/libelf1_0.192-r1_arm_cortex-a7_neon-vfpv4.ipk",
+        "SHA256sum": "1e3c4e4772737dee8533d031aeb3b2a2ecd85325167bc36fbeb97e32934f822c"
+      },
+      {
+        "Package": "libgcc1",
+        "Version": "13.3.0-r4",
+        "License": "GPL-3.0-with-GCC-exception",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/targets/ipq40xx/generic/packages/libgcc1_13.3.0-r4_arm_cortex-a7_neon-vfpv4.ipk",
+        "SHA256sum": "943c204796919db735bbc27e72841ca72589545dc76bed59e398abd68c14c13e"
+      },
+      {
+        "Package": "libjson-c5",
+        "Version": "0.18-r1",
+        "License": "MIT",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/arm_cortex-a7_neon-vfpv4/base/libjson-c5_0.18-r1_arm_cortex-a7_neon-vfpv4.ipk",
+        "SHA256sum": "7dc895f50bf4108c816d13043afd802acf17819e79424a183f1164e50a5f6945"
+      },
+      {
+        "Package": "libmbedtls21",
+        "Version": "3.6.7-r1",
+        "License": "GPL-2.0-or-later",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/arm_cortex-a7_neon-vfpv4/base/libmbedtls21_3.6.7-r1_arm_cortex-a7_neon-vfpv4.ipk",
+        "SHA256sum": "0105fc4b4ee66e01e6d18999520227907e3a50ef0da9a3354e1d3c03c66f2665"
+      },
+      {
+        "Package": "libmnl0",
+        "Version": "1.0.5-r1",
+        "License": "LGPL-2.1+",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/arm_cortex-a7_neon-vfpv4/base/libmnl0_1.0.5-r1_arm_cortex-a7_neon-vfpv4.ipk",
+        "SHA256sum": "938da15a4616de777541952f4a7ec48227835eb29dd1f3db532ac8610a9ad97d"
+      },
+      {
+        "Package": "libnghttp2-14",
+        "Version": "1.63.0-r1",
+        "License": "MIT",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/arm_cortex-a7_neon-vfpv4/packages/libnghttp2-14_1.63.0-r1_arm_cortex-a7_neon-vfpv4.ipk",
+        "SHA256sum": "1229bcb3e38e284f70e02333a73286ea5c348bedbeed730f75f63f9359522a94"
+      },
+      {
+        "Package": "libnl-tiny1",
+        "Version": "2025.03.19~c0df580a-r1",
+        "License": "LGPL-2.1",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/arm_cortex-a7_neon-vfpv4/base/libnl-tiny1_2025.03.19~c0df580a-r1_arm_cortex-a7_neon-vfpv4.ipk",
+        "SHA256sum": "afa14b078805eb767f6971e5825bd4adc49093d0e1229aeda5610ba79d4c37e2"
+      },
+      {
+        "Package": "libpthread",
+        "Version": "1.2.5-r4",
+        "License": "GPL-3.0-with-GCC-exception",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/targets/ipq40xx/generic/packages/libpthread_1.2.5-r4_arm_cortex-a7_neon-vfpv4.ipk",
+        "SHA256sum": "016d9a51900c7c72c204e2f89d8f5f8d3dfa67474a0f2d1ad23cce0ce63cb499"
+      },
+      {
+        "Package": "librt",
+        "Version": "1.2.5-r4",
+        "License": "GPL-3.0-with-GCC-exception",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/targets/ipq40xx/generic/packages/librt_1.2.5-r4_arm_cortex-a7_neon-vfpv4.ipk",
+        "SHA256sum": "f491a9cf6ca6846646ee6618fdd793635a4293020f958ea1512cb724776134f7"
+      },
+      {
+        "Package": "libubox20240329",
+        "Version": "2025.07.23~49056d17-r1",
+        "License": "ISC",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/arm_cortex-a7_neon-vfpv4/base/libubox20240329_2025.07.23~49056d17-r1_arm_cortex-a7_neon-vfpv4.ipk",
+        "SHA256sum": "cc7419dd86ae9847b9fcfb0b0d4b2bbcb4ffb2237b987b461e7f49720a03c655"
+      },
+      {
+        "Package": "zlib",
+        "Version": "1.3.1-r1",
+        "License": "Zlib",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/arm_cortex-a7_neon-vfpv4/base/zlib_1.3.1-r1_arm_cortex-a7_neon-vfpv4.ipk",
+        "SHA256sum": "e6f929dec603dc5fd4aef295dac27130d1d8db4285760a9c70e88a80efdd5c75"
+      }
+    ],
+    "mipsle": [
+      {
+        "Package": "ca-bundle",
+        "Version": "20260816-r1",
+        "License": "GPL-2.0-or-later MPL-2.0",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/mipsel_24kc/base/ca-bundle_20260816-r1_all.ipk",
+        "SHA256sum": "2a1f0df6cb3b6ef8ee88c9add5a1d23aa8ffdcee6bb814d891e4d8bbcc1c3eae"
+      },
+      {
+        "Package": "curl",
+        "Version": "8.22.0-r1",
+        "License": "MIT",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/mipsel_24kc/packages/curl_8.22.0-r1_mipsel_24kc.ipk",
+        "SHA256sum": "03d670eef99713e5c82e907f4661402d44a7af2f02b361ec6fff5e6ce0f74ff4"
+      },
+      {
+        "Package": "flock",
+        "Version": "2.40.2-r1",
+        "License": "GPL-2.0-only",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/mipsel_24kc/base/flock_2.40.2-r1_mipsel_24kc.ipk",
+        "SHA256sum": "cdb9288a7c2c9c35252f0d12309b96302c210a1a569a04595425246d8f5980fc"
+      },
+      {
+        "Package": "ip-full",
+        "Version": "6.11.0-r1",
+        "License": "GPL-2.0",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/mipsel_24kc/base/ip-full_6.11.0-r1_mipsel_24kc.ipk",
+        "SHA256sum": "14d2ed6ba7f365171e24bdcd1519946141f555958175c708b6241c6b3005d641"
+      },
+      {
+        "Package": "jshn",
+        "Version": "2025.07.23~49056d17-r1",
+        "License": "ISC",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/mipsel_24kc/base/jshn_2025.07.23~49056d17-r1_mipsel_24kc.ipk",
+        "SHA256sum": "76833cf0f56d41655da6f045ea9a48a2058736e15dd9b276c651b7f0b055059f"
+      },
+      {
+        "Package": "jsonfilter",
+        "Version": "2025.04.18~8a86fb78-r1",
+        "License": "ISC",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/mipsel_24kc/base/jsonfilter_2025.04.18~8a86fb78-r1_mipsel_24kc.ipk",
+        "SHA256sum": "4d42c5c794e18304fd52d16f18863db0fee1903cf13bf56122918fc1586e1fd0"
+      },
+      {
+        "Package": "libblobmsg-json20240329",
+        "Version": "2025.07.23~49056d17-r1",
+        "License": "ISC",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/mipsel_24kc/base/libblobmsg-json20240329_2025.07.23~49056d17-r1_mipsel_24kc.ipk",
+        "SHA256sum": "38920f0f9706dbcfc0c85846700795d0d56c6900a6c4348ce9cba2395e106411"
+      },
+      {
+        "Package": "libbpf1",
+        "Version": "1.5.0-r1",
+        "License": "LGPL-2.1 OR BSD-2-Clause",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/mipsel_24kc/base/libbpf1_1.5.0-r1_mipsel_24kc.ipk",
+        "SHA256sum": "c42391b73da6bf92fc7e39756e39d3ed8bfacb126ff8516dfe0532c83ff44e84"
+      },
+      {
+        "Package": "libc",
+        "Version": "1.2.5-r4",
+        "License": "MIT",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/targets/ramips/mt7621/packages/libc_1.2.5-r4_mipsel_24kc.ipk",
+        "SHA256sum": "d7375c374087816c1788fa3edad87048b2473ef17ef029dd09efaed6722f5adf"
+      },
+      {
+        "Package": "libcurl4",
+        "Version": "8.22.0-r1",
+        "License": "MIT",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/mipsel_24kc/packages/libcurl4_8.22.0-r1_mipsel_24kc.ipk",
+        "SHA256sum": "4523f8cb6bebe9b3efe05c5e2f6a673dad73501348b3523a7cdf8eed06881bf1"
+      },
+      {
+        "Package": "libelf1",
+        "Version": "0.192-r1",
+        "License": "GPL-2.0-or-later OR LGPL-3.0-or-later",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/mipsel_24kc/base/libelf1_0.192-r1_mipsel_24kc.ipk",
+        "SHA256sum": "36661bcf83d2fecfcb53321f0203d6723a7c8257b444ca74651681eb87774a9c"
+      },
+      {
+        "Package": "libgcc1",
+        "Version": "13.3.0-r4",
+        "License": "GPL-3.0-with-GCC-exception",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/targets/ramips/mt7621/packages/libgcc1_13.3.0-r4_mipsel_24kc.ipk",
+        "SHA256sum": "543f998ab889c31d7955c2483a5917ecf2d0cc2e54a2a0a5c37d9f64d6065722"
+      },
+      {
+        "Package": "libjson-c5",
+        "Version": "0.18-r1",
+        "License": "MIT",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/mipsel_24kc/base/libjson-c5_0.18-r1_mipsel_24kc.ipk",
+        "SHA256sum": "a73411f0e724b6c99d85b961125022807396c43c824a223ed5120972996ef74c"
+      },
+      {
+        "Package": "libmbedtls21",
+        "Version": "3.6.7-r1",
+        "License": "GPL-2.0-or-later",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/mipsel_24kc/base/libmbedtls21_3.6.7-r1_mipsel_24kc.ipk",
+        "SHA256sum": "8ccb9eecbc99934c6c028fc84cc668aca71551efb3c65354915bb33c92ef7231"
+      },
+      {
+        "Package": "libmnl0",
+        "Version": "1.0.5-r1",
+        "License": "LGPL-2.1+",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/mipsel_24kc/base/libmnl0_1.0.5-r1_mipsel_24kc.ipk",
+        "SHA256sum": "2a39ca760dff7c0aa650248d5799d1b8760885f99c98d4aa503baf6a443dbc22"
+      },
+      {
+        "Package": "libnghttp2-14",
+        "Version": "1.63.0-r1",
+        "License": "MIT",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/mipsel_24kc/packages/libnghttp2-14_1.63.0-r1_mipsel_24kc.ipk",
+        "SHA256sum": "0612c7f82cfb3433c63b967f4fbc4058881fe34f81f581d4c1e13ce61b9d921a"
+      },
+      {
+        "Package": "libnl-tiny1",
+        "Version": "2025.03.19~c0df580a-r1",
+        "License": "LGPL-2.1",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/mipsel_24kc/base/libnl-tiny1_2025.03.19~c0df580a-r1_mipsel_24kc.ipk",
+        "SHA256sum": "e228eba428e1d36b16072f1bc5bb00f88d2e8ded202d88aeb05e0b9fa56a1846"
+      },
+      {
+        "Package": "libpthread",
+        "Version": "1.2.5-r4",
+        "License": "GPL-3.0-with-GCC-exception",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/targets/ramips/mt7621/packages/libpthread_1.2.5-r4_mipsel_24kc.ipk",
+        "SHA256sum": "3a00f5b2474c7e412dd99772cc745bbc7eba800a6ffb2118b7c6adc6c45a116e"
+      },
+      {
+        "Package": "librt",
+        "Version": "1.2.5-r4",
+        "License": "GPL-3.0-with-GCC-exception",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/targets/ramips/mt7621/packages/librt_1.2.5-r4_mipsel_24kc.ipk",
+        "SHA256sum": "6f705f650d335d6efbc6a9666a22b417df3f01d4a95b65f646df4f6f05904844"
+      },
+      {
+        "Package": "libubox20240329",
+        "Version": "2025.07.23~49056d17-r1",
+        "License": "ISC",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/mipsel_24kc/base/libubox20240329_2025.07.23~49056d17-r1_mipsel_24kc.ipk",
+        "SHA256sum": "623ad57ce38bd9eb6b46b6fa8d254ad69c8b6543cde88cbb49c1b7b13f1639af"
+      },
+      {
+        "Package": "zlib",
+        "Version": "1.3.1-r1",
+        "License": "Zlib",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/mipsel_24kc/base/zlib_1.3.1-r1_mipsel_24kc.ipk",
+        "SHA256sum": "7b4511be351bb6bf4a7794bb4a3f09918b5dbcdb0213bdad1d684328b2c30552"
+      }
+    ],
+    "amd64": [
+      {
+        "Package": "ca-bundle",
+        "Version": "20260816-r1",
+        "License": "GPL-2.0-or-later MPL-2.0",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/x86_64/base/ca-bundle_20260816-r1_all.ipk",
+        "SHA256sum": "2a1f0df6cb3b6ef8ee88c9add5a1d23aa8ffdcee6bb814d891e4d8bbcc1c3eae"
+      },
+      {
+        "Package": "curl",
+        "Version": "8.22.0-r1",
+        "License": "MIT",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/x86_64/packages/curl_8.22.0-r1_x86_64.ipk",
+        "SHA256sum": "550f8f1b2198d161d283e06b47286bf94782e910c5575cac08c581921669a786"
+      },
+      {
+        "Package": "flock",
+        "Version": "2.40.2-r1",
+        "License": "GPL-2.0-only",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/x86_64/base/flock_2.40.2-r1_x86_64.ipk",
+        "SHA256sum": "9f82b5f74e35adc859623654f9ffd4c8f38f7918bed2d76424fce89ba4e701a8"
+      },
+      {
+        "Package": "ip-full",
+        "Version": "6.11.0-r1",
+        "License": "GPL-2.0",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/x86_64/base/ip-full_6.11.0-r1_x86_64.ipk",
+        "SHA256sum": "b07c45215a6e75523df8e5c0ab3e3d8f94ad01356b93a7bc33609e7882f2faec"
+      },
+      {
+        "Package": "jshn",
+        "Version": "2025.07.23~49056d17-r1",
+        "License": "ISC",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/x86_64/base/jshn_2025.07.23~49056d17-r1_x86_64.ipk",
+        "SHA256sum": "ad1dea8885a223c85f345f1ba2fe650d443807c243adf6620e6636ffa38e59ef"
+      },
+      {
+        "Package": "jsonfilter",
+        "Version": "2025.04.18~8a86fb78-r1",
+        "License": "ISC",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/x86_64/base/jsonfilter_2025.04.18~8a86fb78-r1_x86_64.ipk",
+        "SHA256sum": "57beef1acd71b6ba696d0a8d006cadf822d3684a96927071bb2b4e54305cc6ad"
+      },
+      {
+        "Package": "libblobmsg-json20240329",
+        "Version": "2025.07.23~49056d17-r1",
+        "License": "ISC",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/x86_64/base/libblobmsg-json20240329_2025.07.23~49056d17-r1_x86_64.ipk",
+        "SHA256sum": "14831ca29c68970819aad29165bcf669d3ef10824f0c9eb58f2d840f6311bdd6"
+      },
+      {
+        "Package": "libbpf1",
+        "Version": "1.5.0-r1",
+        "License": "LGPL-2.1 OR BSD-2-Clause",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/x86_64/base/libbpf1_1.5.0-r1_x86_64.ipk",
+        "SHA256sum": "179eabc6d5471f201b44ee8b3543ecf88027745124ccd63b85688023d94a87bc"
+      },
+      {
+        "Package": "libc",
+        "Version": "1.2.5-r4",
+        "License": "MIT",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/targets/x86/64/packages/libc_1.2.5-r4_x86_64.ipk",
+        "SHA256sum": "d6596aae75b9cd15d5107b30b17e93349e319b927ed283eaeb40d2a9529ccab5"
+      },
+      {
+        "Package": "libcurl4",
+        "Version": "8.22.0-r1",
+        "License": "MIT",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/x86_64/packages/libcurl4_8.22.0-r1_x86_64.ipk",
+        "SHA256sum": "6c68a46b618a55a44efe22de72cba4f432b82a5a7112f26bf8c5b08b0775e066"
+      },
+      {
+        "Package": "libelf1",
+        "Version": "0.192-r1",
+        "License": "GPL-2.0-or-later OR LGPL-3.0-or-later",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/x86_64/base/libelf1_0.192-r1_x86_64.ipk",
+        "SHA256sum": "e115b8f2a73344174e1d426c4083a93ffc1c45f92a18b1e71d6bc620dc43fe04"
+      },
+      {
+        "Package": "libgcc1",
+        "Version": "13.3.0-r4",
+        "License": "GPL-3.0-with-GCC-exception",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/targets/x86/64/packages/libgcc1_13.3.0-r4_x86_64.ipk",
+        "SHA256sum": "e98b89b07da213c7c242c62e206abffd0559701ef89846ca5bb5244bb8d2b007"
+      },
+      {
+        "Package": "libjson-c5",
+        "Version": "0.18-r1",
+        "License": "MIT",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/x86_64/base/libjson-c5_0.18-r1_x86_64.ipk",
+        "SHA256sum": "f2d69c8ddc3d86c87b640d40dc3f8180a826c58c347e04c8c68204f9df5685f3"
+      },
+      {
+        "Package": "libmbedtls21",
+        "Version": "3.6.7-r1",
+        "License": "GPL-2.0-or-later",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/x86_64/base/libmbedtls21_3.6.7-r1_x86_64.ipk",
+        "SHA256sum": "9d235815851fdbdb5b2c8baf9c61cfe19c57a099e0edc6cb46f3217b99b18682"
+      },
+      {
+        "Package": "libmnl0",
+        "Version": "1.0.5-r1",
+        "License": "LGPL-2.1+",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/x86_64/base/libmnl0_1.0.5-r1_x86_64.ipk",
+        "SHA256sum": "6c182b2e8956adbbf2006dc6160c60e35d93b977c1f7141eca89fc9c1b08a788"
+      },
+      {
+        "Package": "libnghttp2-14",
+        "Version": "1.63.0-r1",
+        "License": "MIT",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/x86_64/packages/libnghttp2-14_1.63.0-r1_x86_64.ipk",
+        "SHA256sum": "0b901f6b707503c7af7151b67300e0554caebf370e17c1b4b97ae39576faa2ab"
+      },
+      {
+        "Package": "libnl-tiny1",
+        "Version": "2025.03.19~c0df580a-r1",
+        "License": "LGPL-2.1",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/x86_64/base/libnl-tiny1_2025.03.19~c0df580a-r1_x86_64.ipk",
+        "SHA256sum": "d3fb330318a0876bd0df522f59ac822526e5ea4ce490f8d3a71860455cfde9e3"
+      },
+      {
+        "Package": "libpthread",
+        "Version": "1.2.5-r4",
+        "License": "GPL-3.0-with-GCC-exception",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/targets/x86/64/packages/libpthread_1.2.5-r4_x86_64.ipk",
+        "SHA256sum": "3788206dbc40d69a3f6d3dc158cfea5df1247153889b58cc6d889a0962aa9340"
+      },
+      {
+        "Package": "librt",
+        "Version": "1.2.5-r4",
+        "License": "GPL-3.0-with-GCC-exception",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/targets/x86/64/packages/librt_1.2.5-r4_x86_64.ipk",
+        "SHA256sum": "8d88887f1aeca649f80d0fb7558696194165e4e2bef2596ba72f4a4324bd2ca0"
+      },
+      {
+        "Package": "libubox20240329",
+        "Version": "2025.07.23~49056d17-r1",
+        "License": "ISC",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/x86_64/base/libubox20240329_2025.07.23~49056d17-r1_x86_64.ipk",
+        "SHA256sum": "2129f92e30b38ae6d74618fbf5fddd0ea910d4c5b9d38f07004765dcd8019162"
+      },
+      {
+        "Package": "zlib",
+        "Version": "1.3.1-r1",
+        "License": "Zlib",
+        "download": "https://downloads.openwrt.org/releases/24.10.4/packages/x86_64/base/zlib_1.3.1-r1_x86_64.ipk",
+        "SHA256sum": "e37b84681c6b7ab4521a88efa21aa97d832aaa9a4d7aa5d954bffc81d1a542ce"
+      }
+    ]
+  },
+  "source_recipes": {
+    "target": "https://github.com/openwrt/openwrt/tree/78b23a26c4c98938d549e7ff5876508544e33d4d",
+    "base": "https://github.com/openwrt/openwrt/tree/58584c6f2829a7e5d77376ab68aae3dcc4a392d8",
+    "packages": "https://github.com/openwrt/packages/tree/a498356178bd6fefd6796b0abfe1364063571abf"
+  }
+}

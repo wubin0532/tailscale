@@ -1,6 +1,8 @@
 # Tailscale LuCI v2.0
 
-OpenWrt 的 Tailscale 管理插件，包含经 UPX 压缩的官方独立 `tailscale`、`tailscaled` 二进制和 LuCI 界面。插件版本 `v2.0`，IPK 版本 `2.0.0-1`，APK 版本 `2.0.0-r1`；核心独立显示为 `1.104.1`。
+OpenWrt/LibWrt 的 Tailscale 管理插件，插件界面版本 **v2.0**，离线自解压安装器版本 **2.0.0-r2**，核心版本 **1.104.1**。交付格式为 `.run`，不再构建 IPK/APK。
+
+从固定的官方源码构建完整功能核心，使用上游 `build_dist.sh --box --strip` 合并 CLI 与守护进程，再以 UPX 5.2.1 压缩。只安装一份 `tailscaled`；`tailscale` 是指向它的符号链接。没有使用任何 `ts_omit_*` 精简标签。此核心是官方源码构建产物，并非官方预编译文件。
 
 ## 功能
 
@@ -13,30 +15,43 @@ OpenWrt 的 Tailscale 管理插件，包含经 UPX 压缩的官方独立 `tailsc
 
 设备列表受核心和访问策略限制，不能保证看到整个 tailnet。核心没有返回的节点不会由界面虚构。
 
-## 安装
+## 离线安装与升级
 
-从 [v2.0 Releases](https://github.com/wubin0532/tailscale/releases/tag/v2.0) 下载与固件架构、包管理器相符的安装包，先对照 `SHA256SUMS-v2.0.txt` 校验。所有代码提交到 main；Release 使用指向 main 发布提交的 v2.0 版本标签，并挂载真机测试过的同一批安装包。
+下载 [Releases](https://github.com/wubin0532/tailscale/releases/tag/v2.0) 中与 CPU 对应的 `.run` 及 `SHA256SUMS-v2.0-run.txt`。新安装器经过真机验证后才替换公开交付包；请以 Release 资产和验证记录为准。
 
 ```sh
-# 使用 opkg 的固件
-opkg install ./tailscale-luci_2.0.0-1_aarch64_cortex-a53.ipk
-# 使用 apk 的固件（apk v3）
-apk add --allow-untrusted ./tailscale-luci_2.0.0-r1_aarch64_cortex-a53.apk
-/etc/init.d/rpcd restart
+uname -m
+sha256sum -c SHA256SUMS-v2.0-run.txt
+# Home x86-64 示例；上传到路由器后以 root 执行
+sh tailscale-luci_2.0.0-r2_amd64.run --check
+sh tailscale-luci_2.0.0-r2_amd64.run --install
 ```
 
-| 包架构 | 官方核心架构 |
-|---|---|
-| aarch64_cortex-a53 | arm64 |
-| arm_cortex-a7 | arm |
-| mipsel_24kc | mipsle |
-| x86_64 | amd64 |
+校验清单包含四个架构；只下载一个包时，可单独对照该行校验。`--check` 验证内置载荷校验和，外部 SHA-256 清单用于核对完整文件。
 
-要求 fw4 固件，以及 `luci-base`、`rpcd`、`ca-bundle`、`kmod-tun`、`jsonfilter`、`ip-full`、`curl`、`flock`。按固件实际包管理器选择 IPK/APK。已有官方 `tailscale` 包时先备份配置和身份，再处理包冲突。
+| `uname -m` | 安装器架构 | 用户态依赖基线 |
+|---|---|---|
+| aarch64 | arm64 | aarch64 Cortex-A53 |
+| armv7l | arm | ARMv7 Cortex-A7 / NEON / VFPv4 |
+| mips / mipsel，小端 | mipsle | MIPS 24Kc、小端软浮点 |
+| x86_64 | amd64 | x86-64 |
 
-本版直接使用[官方稳定下载](https://pkgs.tailscale.com/stable/)的原始二进制，不做精简编译；再用 UPX 5.2.1 压缩以节约路由器存储，每份压缩文件均验证解压内容与官方文件一致。升级前确认剩余存储。保留官方默认内存参数，不把 VSZ 当实际内存。
+安装器离线携带 curl、jsonfilter、jshn、ip-full、flock、CA 证书和全部对应用户态库，包括私有 musl 加载器。依赖位于 `/usr/lib/tailscale-luci/runtime`，不覆盖系统工具或库，也不联网安装依赖。
 
-升级前将 `/etc/config/tailscale`、`/etc/config/firewall`、`/etc/tailscale` 和旧包备份到 root 专用目录。普通升级保留身份；“身份与配置清理”会删除登录状态，需重新授权。
+固件须已有 **LuCI、rpcd、procd、UCI、fw4、BusyBox 和与当前内核匹配的 TUN 支持**。这些属于固件框架，不能用同一个用户态安装器跨内核替换。缺少框架、架构不符、依赖无法运行或空间不足时，安装器在停止原服务前退出。ARM 包要求上述 CPU 指令集；MIPS 包只支持小端。
+
+普通升级保留 `/etc/config/tailscale`、现有设备身份和手动防火墙规则。安装前建立 root 专用恢复备份；替换失败时恢复旧文件、配置及原服务。升级旧的 `tailscale-luci` IPK 时会迁移其包记录，保留系统依赖。其它维护者的 `tailscale` / `luci-app-tailscale` 包会报冲突，避免直接覆盖。已有 `tailscale-luci` APK 的自动迁移尚不支持：先备份配置与身份、卸载旧插件，再运行安装器。
+
+新安装默认保持服务关闭，在 LuCI 中启用并登录。升级保持原服务启停与开机启动状态。控制连接可能晚于本地进程恢复；安装成功只确认本地核心和 API 可运行。
+
+```sh
+# 只解压到一个尚不存在的目录
+sh tailscale-luci_2.0.0-r2_amd64.run --extract /tmp/tailscale-inspect
+# 卸载 .run 安装的文件，保留配置和登录身份
+sh /usr/lib/tailscale-luci-uninstall.sh
+```
+
+“身份与配置清理”会删除登录状态，需重新授权。UPX 节约磁盘空间，不能据此承诺实际 RSS 下降；保留官方默认内存参数。
 
 ## 办公室访问家庭与 VPS
 
@@ -50,16 +65,18 @@ NAT 限制默认留空。例如源地址可填办公室 `192.168.123.0/24`；目
 
 ## 构建与验证
 
-`core-version.env` 固定插件及核心版本，`official-sha256.txt` 固定四种架构官方归档的 SHA-256。`fetch-core.sh` 下载并校验归档，`prepare-core.sh` 使用固定 UPX 压缩并验证可逆性，每次复用缓存仍检查校验和。`build-ipk.sh` 安装两份 UPX 压缩核心；APK 使用 apk-tools 3，非 root 构建须使用 fakeroot。
+`core-version.env` 固定插件版本、Go 1.27.1、UPX 5.2.1、上游源码提交与归档 SHA-256。`prepare-core.sh` 验证源码和构建目录，完整功能合并编译、去符号、压缩，并核对 UPX 解压后与本次原始构建完全一致。`dependencies.lock.json` 固定四种架构的 OpenWrt 用户态依赖版本、URL、校验和及许可证。
 
 ```sh
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 node tests/test_views.js
-./fetch-core.sh
-# 先构建 LuCI po2lmo，并放到 build/po2lmo
-./build-ipk.sh
-# Linux 上构建全部 IPK/APK
-APK_MKPKG=/path/to/apk-tools-3 fakeroot ./build-ipk.sh
+# 先将 LuCI po2lmo 构建到 build/po2lmo
+./build-run.sh
+python3 tests/verify_run.py
+# Linux + qemu-user：校验全部架构的 CLI 与用户态依赖可执行
+python3 tests/verify_run.py --execute
 ```
 
-SDK 构建主机须提供 UPX 5.2.1（可通过 `HOST_UPX` 指定路径）。SDK 编译使用 `tailscale/Makefile` 和 `luci-app-tailscale/Makefile`，同样下载固定官方归档。GitHub Actions 在 main 推送及手工触发时构建 IPK/APK 并保存产物；仅将实机验证过的同一文件作为交付包。ARM64 IPK 的实测范围与其它架构/APK 的构建验证分开记录，见 [v2.0 验证记录](docs/validation-v2.0.md)。
+构建需要网络下载固定源码、Go 模块和固定依赖；**安装时不需要网络或包管理器安装依赖**。依赖解析的 `--resolve` 仅用于维护锁文件，普通构建不会解析最新包。
+
+GitHub Actions 只从 main 或手工触发构建 `.run` 和校验清单，不自动公开 Release。新产物记录真实构建提交，已有 v2.0 标签保持不动，不新建开发分支或其它标签。验证记录见 [旧版 v2.0 包验证](docs/validation-v2.0.md) 和 [`.run` 候选验证](docs/validation-run-v2.0.md)。

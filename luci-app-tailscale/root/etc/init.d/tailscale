@@ -191,6 +191,7 @@ start_service() {
 		--port "$port" \
 		--socket "$SOCK_DIR/tailscaled.sock"
 	procd_set_param respawn "${respawn_threshold:-3600}" "${respawn_timeout:-5}" "${respawn_retry:-5}"
+	procd_set_param env PATH="$PATH" SSL_CERT_FILE="${SSL_CERT_FILE:-/etc/ssl/certs/ca-certificates.crt}"
 	procd_set_param stdout 1
 	procd_set_param stderr 1
 	procd_close_instance
@@ -202,6 +203,7 @@ start_service() {
 	procd_set_param command /usr/libexec/tailscale-route-watch
 	procd_set_param file /etc/config/tailscale
 	procd_set_param respawn 3600 5 5
+	procd_set_param env PATH="$PATH" SSL_CERT_FILE="${SSL_CERT_FILE:-/etc/ssl/certs/ca-certificates.crt}"
 	procd_set_param stdout 1
 	procd_set_param stderr 1
 	procd_close_instance

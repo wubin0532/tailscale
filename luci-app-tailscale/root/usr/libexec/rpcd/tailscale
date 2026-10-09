@@ -1,7 +1,6 @@
 #!/bin/sh
 # rpcd backend for luci-app-tailscale
 
-. /usr/share/libubox/jshn.sh
 . /usr/lib/tailscale-luci.sh
 
 CLI=/usr/sbin/tailscale

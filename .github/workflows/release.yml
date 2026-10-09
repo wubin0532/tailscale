@@ -1,9 +1,8 @@
-name: Build packages
+name: Build offline run installers
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -14,49 +13,40 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27.1'
+          cache: false
       - name: Regression tests
         run: |
           python3 -m unittest discover -s tests -p 'test_*.py' -v
           node tests/test_views.js
-          bash -n build-ipk.sh
-          for script in luci-app-tailscale/root/etc/init.d/tailscale luci-app-tailscale/root/usr/lib/tailscale-luci.sh luci-app-tailscale/root/usr/libexec/rpcd/tailscale luci-app-tailscale/root/usr/libexec/tailscale-route-watch; do
+          bash -n build-run.sh prepare-core.sh
+          for script in packaging/install.sh packaging/run-header.sh luci-app-tailscale/root/etc/init.d/tailscale luci-app-tailscale/root/usr/lib/tailscale-luci.sh luci-app-tailscale/root/usr/lib/tailscale-luci-uninstall.sh luci-app-tailscale/root/usr/libexec/rpcd/tailscale luci-app-tailscale/root/usr/libexec/tailscale-route-watch; do
             sh -n "$script"
           done
-
-      - name: Build po2lmo (LuCI i18n)
+      - name: Build po2lmo
         run: |
           git clone --depth 1 https://github.com/openwrt/luci.git /tmp/luci
           make -C /tmp/luci/modules/luci-base/src po2lmo
           mkdir -p build
           cp /tmp/luci/modules/luci-base/src/po2lmo build/po2lmo
-
-      - name: Verify official Tailscale binaries
-        run: ./fetch-core.sh
-
-      - name: Install pinned UPX
+      - name: Install pinned UPX and architecture test runners
         run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq qemu-user
           curl -fL --retry 2 -o /tmp/upx.tar.xz https://github.com/upx/upx/releases/download/v5.2.1/upx-5.2.1-amd64_linux.tar.xz
           echo '402162aad30af47e60dbd767fb2e64ca394ace9727ba1f40283641f1d1b91657  /tmp/upx.tar.xz' | sha256sum -c -
           tar -xJf /tmp/upx.tar.xz -C /tmp
           echo "UPX_BIN=/tmp/upx-5.2.1-amd64_linux/upx" >> "$GITHUB_ENV"
-
-      - name: Build apk-tools (mkpkg for apk v3 packages)
-        run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq meson libssl-dev zlib1g-dev
-          git clone --depth 1 --branch v3.0.5 https://github.com/alpinelinux/apk-tools.git /tmp/apk-tools
-          meson setup -Ddocs=disabled -Dlua=disabled -Dtests=disabled -Dpython=disabled /tmp/apk-tools/b /tmp/apk-tools
-          ninja -C /tmp/apk-tools/b src/apk
-          echo "APK_MKPKG=/tmp/apk-tools/b/src/apk" >> "$GITHUB_ENV"
-
-      - name: Assemble ipk + apk packages
-        run: sudo apt-get install -y -qq fakeroot && fakeroot ./build-ipk.sh
-
-      - name: Verify package contents
-        run: python3 tests/verify_packages.py
-
-      - name: Upload build artifacts
+      - name: Build full-feature combined core and offline installers
+        run: ./build-run.sh
+      - name: Verify payloads and executable dependencies
+        run: python3 tests/verify_run.py --execute
+      - name: Upload installers
         uses: actions/upload-artifact@v4
         with:
-          name: tailscale-luci-packages
-          path: dist/*
+          name: tailscale-luci-run-v2.0
+          path: |
+            dist/*.run
+            dist/SHA256SUMS-v2.0-run.txt

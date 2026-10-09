@@ -1,7 +1,15 @@
 #!/bin/sh
 # Shared helpers. Every CLI argument is passed as a separate quoted word.
 . /lib/functions.sh 2>/dev/null || true
-. /usr/share/libubox/jshn.sh 2>/dev/null || true
+# Offline .run dependencies are private; never alter global system libraries.
+if [ -x /usr/lib/tailscale-luci/runtime/bin/jshn ]; then
+    PATH=/usr/lib/tailscale-luci/runtime/bin:$PATH
+    SSL_CERT_FILE=/usr/lib/tailscale-luci/runtime/etc/ssl/certs/ca-certificates.crt
+    export PATH SSL_CERT_FILE
+    . /usr/lib/tailscale-luci/runtime/usr/share/libubox/jshn.sh
+else
+    . /usr/share/libubox/jshn.sh 2>/dev/null || true
+fi
 TS_CLI=${TS_CLI:-/usr/sbin/tailscale}
 TS_RUN_DIR=${TS_RUN_DIR:-/var/run/tailscale}
 TS_ROUTE_CHECK=${TS_ROUTE_CHECK:-/usr/libexec/tailscale-route-check.awk}
