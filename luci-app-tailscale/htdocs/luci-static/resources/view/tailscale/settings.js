@@ -119,9 +119,12 @@ return view.extend({
 			help(_('Optional: route this router\'s internet traffic through an approved exit node. Enter that device\'s Tailscale IP (100.x.x.x) or name, not a LAN IP or subnet such as 192.168.123.0/24. Leave empty for normal internet access and for office-to-home subnet access.')));
 		o.placeholder = _('Leave empty for normal internet access');
 		o.validate = function(section, value) {
-			if (!value || value === 'auto:any' || validation.parseIPv4(value) || validation.parseIPv6(value)) return true;
+			if (!value || validation.parseIPv4(value) || validation.parseIPv6(value)) return true;
+			// Preserve auto expressions understood by the official core, including
+			// existing values which currently fall back to automatic selection.
+			if (/^auto:[a-zA-Z0-9.:-]+$/.test(value)) return true;
 			var name = value.replace(/\.$/, '');
-			if (name.length <= 253 && !/^[\d.]+$/.test(name) && name.split('.').every(function(label) {
+			if (name.length <= 253 && !/^\d+\.\d+\.\d+\.\d+$/.test(name) && name.split('.').every(function(label) {
 				return /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/.test(label);
 			})) return true;
 			return _('Enter the exit node IP or device name, not a subnet.');
