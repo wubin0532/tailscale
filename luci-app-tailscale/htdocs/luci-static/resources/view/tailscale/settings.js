@@ -18,6 +18,8 @@ function validateRoute(value) {
 	var parts = value.split('/');
 	var v6 = parts[0].indexOf(':') >= 0;
 	var words = v6 ? validation.parseIPv6(parts[0]) : validation.parseIPv4(parts[0]);
+	if (!v6 && parts[0].split('.').some(function(octet) { return octet.length > 1 && octet[0] === '0'; }))
+		return _('Enter a valid subnet in CIDR format.');
 	var width = v6 ? 16 : 8;
 	var max = v6 ? 128 : 32;
 	if (parts.length !== 2 || !/^\d+$/.test(parts[1]) || !words || Number(parts[1]) > max)

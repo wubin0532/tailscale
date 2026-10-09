@@ -142,6 +142,28 @@ jsonfilter() { echo "$ENABLED"; }
    p=shell(RPC+'\nservice_lock\n',os.environ|{'TS_RUN_DIR':tmp})
    self.assertEqual(p.returncode,0,p.stderr)
  def test_logout_exit_code(self): self.assertEqual(self.run_rpc('CASE_CODE=0; do_logout\nCASE_CODE=9; do_logout\n'),'success=1\nsuccess=0')
+ def test_ping_derp_is_reachable_without_requiring_direct(self):
+  out=self.run_rpc('''
+ENABLED=100.90.126.80; CHECK_OUTPUT=1
+json_add_int() { echo "$1=$2"; }
+mock_cli() {
+ [ "$1" = ping ] && [ "$2" = --until-direct=false ] || return 9
+ echo 'pong from VPS via DERP(sfo) in 368ms'
+}
+do_ping <<EOF
+{}
+EOF
+''')
+  self.assertEqual(out,'success=1\nexit_code=0\noutput=pong from VPS via DERP(sfo) in 368ms')
+ def test_ping_nonzero_still_reports_failure(self):
+  out=self.run_rpc('''
+ENABLED=100.90.126.80; CASE_CODE=9; CHECK_OUTPUT=1
+json_add_int() { echo "$1=$2"; }
+do_ping <<EOF
+{}
+EOF
+''')
+  self.assertEqual(out,'success=0\nexit_code=9\noutput=')
  def test_enable_commit_then_start(self): self.assertEqual(self.run_rpc('ENABLED=1; FAIL_ACTION=none; do_set_enabled <<EOF\n{}\nEOF\ncat "$TS_RUN_DIR/enabled"; echo; cat "$TS_RUN_DIR/events"\n'),'success=1\n1\ncommit\nenable\nstart')
  def test_start_failure_rollback(self): self.assertEqual(self.run_rpc('ENABLED=1; FAIL_ACTION=start; do_set_enabled <<EOF\n{}\nEOF\ncat "$TS_RUN_DIR/enabled"; echo; cat "$TS_RUN_DIR/events"\n'),'success=0\n0\ncommit\nenable\nstart\ncommit\nstop\ndisable')
  def test_success_has_no_failure_message(self):

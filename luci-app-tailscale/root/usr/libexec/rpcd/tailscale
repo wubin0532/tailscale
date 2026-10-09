@@ -120,7 +120,9 @@ do_ping() {
 			return
 			;;
 	esac
-	out=$(ts_capture "$CLI" ping --c 2 --timeout 5s "$host") || result=$?
+	# Test reachability through either a direct or DERP path. The CLI default
+	# exits nonzero when it receives DERP pongs but cannot establish direct.
+	out=$(ts_capture "$CLI" ping --until-direct=false --c 2 --timeout 5s "$host") || result=$?
 	json_init
 	if [ "$result" -eq 0 ]; then json_add_boolean success 1; else json_add_boolean success 0; fi
 	json_add_int exit_code "$result"

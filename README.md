@@ -15,7 +15,7 @@ OpenWrt 的 Tailscale 管理插件，包含经 UPX 压缩的官方独立 `tailsc
 
 ## 安装
 
-从 [GitHub Releases](https://github.com/wubin0532/tailscale/releases) 下载与固件架构、包管理器相符的文件，先对照 `SHA256SUMS-v2.0.txt` 校验。
+从 [main 构建页面](https://github.com/wubin0532/tailscale/actions/workflows/release.yml?query=branch%3Amain) 打开通过的构建，下载 `tailscale-luci-packages` 产物，按固件架构与包管理器选择文件，并对照 `SHA256SUMS-v2.0.txt` 校验。按维护者要求，v2.0 代码直接交付到 main，不创建版本标签或 GitHub Release。
 
 ```sh
 # 使用 opkg 的固件
@@ -62,4 +62,4 @@ node tests/test_views.js
 APK_MKPKG=/path/to/apk-tools-3 fakeroot ./build-ipk.sh
 ```
 
-SDK 构建主机须提供 UPX 5.2.1（可通过 `HOST_UPX` 指定路径）。SDK 编译使用 `tailscale/Makefile` 和 `luci-app-tailscale/Makefile`，同样下载固定官方归档。GitHub Actions 的手工构建生成候选产物，标签构建只创建草稿；实机通过后再公开发布。ARM64 IPK 的实测范围与其它架构/APK 的构建验证分开记录，见 [v2.0 验证记录](docs/validation-v2.0.md)。
+SDK 构建主机须提供 UPX 5.2.1（可通过 `HOST_UPX` 指定路径）。SDK 编译使用 `tailscale/Makefile` 和 `luci-app-tailscale/Makefile`，同样下载固定官方归档。GitHub Actions 在 main 推送及手工触发时构建 IPK/APK 并保存产物；仅将实机验证过的同一文件作为交付包。ARM64 IPK 的实测范围与其它架构/APK 的构建验证分开记录，见 [v2.0 验证记录](docs/validation-v2.0.md)。

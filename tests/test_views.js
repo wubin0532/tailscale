@@ -56,7 +56,7 @@ function findButton(root){if(root.tag==='button')return root;for(const c of root
   const throughWidget=value=>o.validate('',o.datatype==='cidr'?value.split('/')[1]:value);
   assert.equal(o.datatype,'string');
   for(const value of ['192.168.123.0/24','192.168.199.0/24','100.90.126.80/32','0.0.0.0/0','fd12::/64','fd12::1/128'])assert.equal(throughWidget(value),true,value);
-  for(const value of ['192.168.123.1/24','192.168.123.0/33','999.168.123.0/24','24','fd12::1/64'])assert.notEqual(throughWidget(value),true,value);
+  for(const value of ['192.168.123.1/24','192.168.123.0/33','192.168.001.0/24','999.168.123.0/24','24','fd12::1/64'])assert.notEqual(throughWidget(value),true,value);
  });
  await check('exit and control server input validation',async()=>{assert.notEqual(options.exit_node.validate('','192.168.123.0/24'),true);assert.equal(options.exit_node.validate('','100.74.174.72'),true);assert.notEqual(options.login_server.validate('','root'),true);assert.equal(options.login_server.validate('','https://headscale.example.com'),true);});
  await check('invalid server hosts, ports and credentials are rejected',async()=>{
