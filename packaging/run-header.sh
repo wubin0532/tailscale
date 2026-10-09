@@ -4,9 +4,9 @@ set -eu
 umask 077
 mode=${1:---install}
 case "$mode" in --help|-h)
-    echo 'Usage: sh package.run [--install | --check | --extract NEW_DIRECTORY]'
+    echo 'Usage: sh package.run [--install | --check | --extract NEW_DIRECTORY | --uninstall | --uninstall-keep-state]'
     exit 0;;
-    --install|--check|--extract) ;; *) echo 'Unknown option' >&2; exit 2;;
+    --install|--check|--extract|--uninstall|--uninstall-keep-state) ;; *) echo 'Unknown option' >&2; exit 2;;
 esac
 if [ "$mode" = --extract ]; then [ "$#" = 2 ] || exit 2; else [ "$#" -le 1 ] || exit 2; fi
 available=$(df -Pk /tmp | awk 'END {print $4}')
@@ -27,8 +27,18 @@ if [ "$mode" = --extract ]; then
 fi
 [ "$(id -u)" = 0 ] || { echo 'Install as root.' >&2; exit 1; }
 [ "$(uname -s)" = Linux ] || { echo 'Requires an OpenWrt/LibWrt Linux router.' >&2; exit 1; }
-case "@ARCH@:$(uname -m)" in arm64:aarch64|arm:armv7l|mipsle:mips|mipsle:mipsel|amd64:x86_64) ;; *) echo 'Wrong architecture; nothing installed.' >&2; exit 1;; esac
+if [ "$mode" = --install ]; then
+    case "@ARCH@:$(uname -m)" in arm64:aarch64|arm:armv7l|mipsle:mips|mipsle:mipsel|amd64:x86_64) ;; *) echo 'Wrong architecture; nothing installed.' >&2; exit 1;; esac
+fi
 tar -xzf "$work/payload.tar.gz" -C "$work"
+if [ "$mode" = --uninstall ] || [ "$mode" = --uninstall-keep-state ]; then
+    uninstall_mode=--purge
+    [ "$mode" != --uninstall-keep-state ] || uninstall_mode=--keep-state
+    TS_UNINSTALL_RUNTIME=$work/data/usr/lib/tailscale-luci/runtime; export TS_UNINSTALL_RUNTIME
+    sh "$work/data/usr/lib/tailscale-luci-uninstall.sh" "$uninstall_mode"
+    exit $?
+fi
+TS_RUN_SOURCE=$0; export TS_RUN_SOURCE
 sh "$work/install.sh" "$work" "@ARCH@" "@VERSION@"
 exit 0
 __TAILSCALE_PAYLOAD__

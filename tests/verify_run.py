@@ -40,9 +40,20 @@ def check(path,execute=False):
    digest,name=line.split('  ',1)
    assert hashlib.sha256(archive.extractfile('data/'+name).read()).hexdigest()==digest,name
   metadata=json.load(archive.extractfile('data/usr/share/tailscale-luci/build.json'))
+  assert metadata['plugin']=='v'+ENV['APP_VERSION']
+  assert metadata['installer_version']==ENV['APP_VERSION']+'-r'+ENV['APP_RELEASE']
   assert metadata['core']==ENV['CORE_VERSION']
   assert metadata['core_commit']==ENV['CORE_SOURCE_COMMIT']
   assert metadata['build_tags']==['ts_include_cli']
+  registration=archive.extractfile('data/usr/share/tailscale-luci/registration.ipk').read()
+  with tarfile.open(fileobj=io.BytesIO(registration)) as management:
+   with tarfile.open(fileobj=io.BytesIO(management.extractfile('./control.tar.gz').read())) as control:
+    fields=control.extractfile('./control').read().decode()
+    assert 'Package: tailscale-luci-run\n' in fields
+    assert 'Version: '+ENV['APP_VERSION']+'-r'+ENV['APP_RELEASE']+'\n' in fields
+    assert 'Architecture: all\n' in fields and 'Depends:' not in fields
+    assert control.getmember('./prerm').mode==0o755
+    assert 'Standalone removal' in control.extractfile('./prerm').read().decode()
   for name,m in members.items():
    if m.isfile():
     data=archive.extractfile(m).read()
@@ -78,5 +89,5 @@ def check(path,execute=False):
 if __name__=='__main__':
  files=[ROOT/'dist'/f'tailscale-luci_{ENV["APP_VERSION"]}-r{ENV["APP_RELEASE"]}_{arch}.run' for arch in os.environ.get('CORE_ARCHES','arm64 arm mipsle amd64').split()]
  for path in files:check(path,'--execute' in os.sys.argv)
- manifest=(ROOT/'dist/SHA256SUMS-v2.0-run.txt').read_text()
+ manifest=(ROOT/f'dist/SHA256SUMS-v{ENV["APP_VERSION"]}-run.txt').read_text()
  for path in files:assert hashlib.sha256(path.read_bytes()).hexdigest()+'  '+path.name in manifest

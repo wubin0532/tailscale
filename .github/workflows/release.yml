@@ -43,10 +43,12 @@ jobs:
         run: ./build-run.sh
       - name: Verify payloads and executable dependencies
         run: python3 tests/verify_run.py --execute
+      - name: Verify native OpenWrt opkg and iStore install and uninstall
+        run: sudo python3 tests/verify_native_registration.py
       - name: Upload installers
         uses: actions/upload-artifact@v4
         with:
-          name: tailscale-luci-run-v2.0
+          name: tailscale-luci-run-v2.2.0
           path: |
             dist/*.run
-            dist/SHA256SUMS-v2.0-run.txt
+            dist/SHA256SUMS-v2.2.0-run.txt

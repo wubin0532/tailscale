@@ -4,7 +4,7 @@
 'require uci';
 'require ui';
 'require poll';
-'require tailscale.ui-v2-r1 as tsui';
+'require tailscale.ui-v2-2-0-r1 as tsui';
 
 var callGetStatus = rpc.declare({
 	object: 'tailscale',

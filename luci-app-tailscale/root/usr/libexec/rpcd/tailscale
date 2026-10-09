@@ -67,7 +67,7 @@ get_status() {
 	json_add_boolean stale "${TS_SNAPSHOT_STALE:-0}"
 	json_add_string error "$TS_SNAPSHOT_ERROR"
 	json_add_string fetched_at "$fetched_at"
-	json_add_string plugin_version "v2.0"
+	json_add_string plugin_version "v2.2.0"
 	json_add_string core_version "$core_version"
 	json_add_string apply_error "$apply_error"
 	json_add_string actual_routes "${actual_routes% }"

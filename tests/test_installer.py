@@ -117,5 +117,28 @@ class InstallerTransactionTests(unittest.TestCase):
   # An old manifest is also validated before removal.
   write(self.router/'usr/share/tailscale-luci/installed-files','../victim\n')
   result=self.install();self.assertNotEqual(result.returncode,0);self.assertEqual((self.router/'usr/sbin/tailscaled').read_text(),'old core')
+ def test_native_registration_failure_rolls_back_files(self):
+  write(self.stage/'data/usr/share/tailscale-luci/registration.ipk','fixture registration')
+  command='''#!/bin/sh
+case "$1" in status) exit 0;; install) exit 7;; remove) [ "$TS_RUN_ROLLBACK" = 1 ] || exit 99; echo rollback > "$FIXTURE_ROLLBACK";; esac
+'''
+  command=command.replace('"$FIXTURE_ROLLBACK"','"'+str(self.base/'rollback-called')+'"')
+  write(self.bin/'opkg',command,True)
+  result=self.install();self.assertNotEqual(result.returncode,0,result.stdout+result.stderr)
+  self.assertEqual((self.router/'usr/sbin/tailscaled').read_text(),'old core')
+  self.assertEqual((self.base/'rollback-called').read_text().strip(),'rollback')
+ def test_native_registration_success_is_verified(self):
+  write(self.stage/'data/usr/share/tailscale-luci/registration.ipk','fixture registration')
+  marker=str(self.base/'registered')
+  command='''#!/bin/sh
+case "$1" in
+ status) [ "$2" != tailscale-luci-run ] || { [ ! -f "MARKER" ] || echo 'Status: install user installed'; };;
+ install) touch "MARKER";;
+esac
+exit 0
+'''.replace('MARKER',marker)
+  write(self.bin/'opkg',command,True)
+  result=self.install();self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+  self.assertTrue((self.base/'registered').exists())
 
 if __name__=='__main__':unittest.main()

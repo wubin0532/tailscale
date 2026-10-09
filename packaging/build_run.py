@@ -6,6 +6,35 @@ import dependencies
 ROOT=Path(__file__).resolve().parents[1]
 ENV=dict(line.strip().split('=',1) for line in (ROOT/'core-version.env').read_text().splitlines() if '=' in line and not line.startswith('#'))
 
+def registration(version):
+    """Native management metadata inside .run; no shared runtime dependencies."""
+    control=f'Package: tailscale-luci-run\nVersion: {version}\nArchitecture: all\nMaintainer: wubin0532\nSection: net\nDescription: Tailscale LuCI offline installer management\n'
+    # Self-contained prerm also recovers missing helper/config/remover files.
+    prerm='''#!/bin/sh
+case "$1" in
+  upgrade|failed-upgrade) exit 0;;
+  remove) [ "${TS_RUN_ROLLBACK:-0}" != 1 ] || exit 0;;
+  *) exit 0;;
+esac
+case "${TS_UNINSTALL_MODE:-purge}" in keep) set -- --from-package --keep-state;; *) set -- --from-package --purge;; esac
+'''+(ROOT/'luci-app-tailscale/root/usr/lib/tailscale-luci-uninstall.sh').read_text()
+    def archive(files):
+        stream=io.BytesIO()
+        with tarfile.open(fileobj=stream,mode='w',format=tarfile.GNU_FORMAT) as tar:
+            for name,(text,mode) in files.items():
+                content=text.encode();info=tarfile.TarInfo('./'+name)
+                info.mode=mode;info.size=len(content);info.uid=info.gid=0;info.mtime=0
+                tar.addfile(info,io.BytesIO(content))
+        return gzip.compress(stream.getvalue(),mtime=0)
+    control_tar=archive({'control':(control,0o644),'prerm':(prerm,0o755)})
+    data_tar=archive({'usr/share/tailscale-luci/package-marker':(version+'\n',0o644)})
+    stream=io.BytesIO()
+    with tarfile.open(fileobj=stream,mode='w',format=tarfile.GNU_FORMAT) as tar:
+        for name,content in [('debian-binary',b'2.0\n'),('control.tar.gz',control_tar),('data.tar.gz',data_tar)]:
+            info=tarfile.TarInfo('./'+name);info.size=len(content);info.mode=0o644;info.mtime=0
+            tar.addfile(info,io.BytesIO(content))
+    return gzip.compress(stream.getvalue(),mtime=0)
+
 def payload(directory):
     stream=io.BytesIO()
     with tarfile.open(fileobj=stream,mode='w',format=tarfile.GNU_FORMAT) as archive:
@@ -31,12 +60,14 @@ def build(arch):
     i18n=data/'usr/lib/lua/luci/i18n';i18n.mkdir(parents=True,exist_ok=True)
     shutil.copyfile(ROOT/'build/i18n/tailscale.zh-cn.lmo',i18n/'tailscale.zh-cn.lmo')
     meta=data/'usr/share/tailscale-luci';meta.mkdir(parents=True,exist_ok=True)
+    (meta/'registration.ipk').write_bytes(registration(ENV['APP_VERSION']+'-r'+ENV['APP_RELEASE']))
+    (meta/'package-marker').write_text(ENV['APP_VERSION']+'-r'+ENV['APP_RELEASE']+'\n')
     licenses=meta/'licenses';licenses.mkdir()
     upstream=ROOT/'build/source'/('tailscale-'+ENV['CORE_VERSION'])
     shutil.copyfile(upstream/'LICENSE',licenses/'tailscale-LICENSE')
     shutil.copyfile(upstream/'licenses/tailscale.md',licenses/'tailscale-third-party.md')
     if (ROOT/'packaging/licenses').exists(): shutil.copytree(ROOT/'packaging/licenses',licenses/'runtime',dirs_exist_ok=True)
-    manifest={'plugin':'v2.0','installer_version':ENV['APP_VERSION']+'-r'+ENV['APP_RELEASE'], 'architecture':arch,'core':ENV['CORE_VERSION'],'core_commit':ENV['CORE_SOURCE_COMMIT'],'source_archive_sha256':ENV['CORE_SOURCE_SHA256'],'core_build':'upstream build_dist.sh --box --strip','build_tags':['ts_include_cli'],'features':'full','go':ENV['GO_VERSION'],'upx':ENV['UPX_VERSION'],'project_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'dirty_source':bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True).strip()),'core_sha256':hashlib.sha256((sbin/'tailscaled').read_bytes()).hexdigest()}
+    manifest={'plugin':'v'+ENV['APP_VERSION'],'installer_version':ENV['APP_VERSION']+'-r'+ENV['APP_RELEASE'], 'architecture':arch,'core':ENV['CORE_VERSION'],'core_commit':ENV['CORE_SOURCE_COMMIT'],'source_archive_sha256':ENV['CORE_SOURCE_SHA256'],'core_build':'upstream build_dist.sh --box --strip','build_tags':['ts_include_cli'],'features':'full','go':ENV['GO_VERSION'],'upx':ENV['UPX_VERSION'],'project_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'dirty_source':bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True).strip()),'core_sha256':hashlib.sha256((sbin/'tailscaled').read_bytes()).hexdigest()}
     (meta/'build.json').write_text(json.dumps(manifest,indent=2)+'\n')
     (meta/'installed-files').write_text('') # replaced with complete file list at install time
     for path in data.rglob('*'):
@@ -61,4 +92,4 @@ def build(arch):
 
 if __name__=='__main__':
     files=[build(arch) for arch in os.environ.get('CORE_ARCHES','arm64 arm mipsle amd64').split()]
-    (ROOT/'dist/SHA256SUMS-v2.0-run.txt').write_text(''.join(hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.name+'\n' for p in files))
+    (ROOT/f'dist/SHA256SUMS-v{ENV["APP_VERSION"]}-run.txt').write_text(''.join(hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.name+'\n' for p in files))

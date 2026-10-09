@@ -5,6 +5,8 @@ umask 077
 stage=$1
 arch=$2
 version=$3
+case "$arch" in arm64|arm|mipsle|amd64) ;; *) echo 'Unknown architecture' >&2; exit 2;; esac
+case "$version" in ''|*[!0-9.r-]*) echo 'Invalid version' >&2; exit 2;; esac
 data=$stage/data
 runtime=$data/usr/lib/tailscale-luci/runtime
 fail() { echo "Install refused: $*" >&2; exit 1; }
@@ -33,10 +35,15 @@ dep usr/bin/util-linux-flock -n 6 || fail 'another installation is running'
 exec 8>/var/run/tailscale/service.lock
 exec 7>/var/run/tailscale/operation.lock
 dep usr/bin/util-linux-flock -n 8 && dep usr/bin/util-linux-flock -n 7 || fail 'a Tailscale operation is running'
-for package in tailscale luci-app-tailscale; do
+for package in tailscale luci-app-tailscale luci-app-tailscaler; do
     if command -v opkg >/dev/null && opkg status "$package" 7>&- 8>&- | grep -q '^Status: .* installed$'; then fail "conflicting package $package is installed"; fi
     if command -v apk >/dev/null && apk info -e "$package" 7>&- 8>&- >/dev/null 2>&1; then fail "conflicting package $package is installed"; fi
 done
+registered_before=0
+if command -v opkg >/dev/null && opkg status tailscale-luci-run 7>&- 8>&- | grep -q '^Status: .* installed$'; then
+    registered_before=1
+    [ -s /usr/share/tailscale-luci/registration.ipk ] || fail 'existing management package lacks its recovery metadata'
+fi
 # Ensure persistent storage can hold the new installation AND a recovery copy.
 needed=$(du -sk "$data" | awk '{print $1}')
 available=$(df -Pk /usr | awk 'END {print $4}')
@@ -86,6 +93,8 @@ was_enabled=0; was_running=0
 [ ! -x /etc/init.d/tailscale ] || ! /etc/init.d/tailscale enabled 7>&- 8>&- 6>&- >/dev/null 2>&1 || was_enabled=1
 pidof tailscaled >/dev/null 2>&1 && was_running=1
 changed=0
+registration_changed=0
+ts_record_created=''
 rollback() {
     status=$?
     trap - EXIT HUP INT TERM
@@ -93,8 +102,15 @@ rollback() {
         echo "Installation failed; restoring previous files from $backup" >&2
         /etc/init.d/tailscale stop 7>&- 8>&- 6>&- >/dev/null 2>&1 || true
         /etc/init.d/tailscale disable 7>&- 8>&- 6>&- >/dev/null 2>&1 || true
+        if [ "$registration_changed" = 1 ] && [ "$registered_before" = 0 ]; then
+            TS_RUN_ROLLBACK=1 opkg remove tailscale-luci-run 7>&- 8>&- 6>&- >/dev/null 2>&1 || true
+        fi
+        [ -z "$ts_record_created" ] || rm -f "$ts_record_created"
         while IFS= read -r path; do rm -f "/$path"; done < "$backup/managed"
         tar -xzf "$backup/before.tar.gz" -C /
+        if [ "$registration_changed" = 1 ] && [ "$registered_before" = 1 ]; then
+            TS_RUN_ROLLBACK=1 opkg install --force-downgrade --force-reinstall /usr/share/tailscale-luci/registration.ipk 7>&- 8>&- 6>&- || echo 'Management metadata recovery failed; restore using the saved registration.ipk.' >&2
+        fi
         if [ -s "$backup/opkg-record" ]; then
             awk 'BEGIN{RS="";ORS="\n\n"} !/^Package: tailscale-luci\n/' /usr/lib/opkg/status > "$backup/opkg-status"
             cat "$backup/opkg-record" >> "$backup/opkg-status"
@@ -134,6 +150,17 @@ if [ "$was_running" = 1 ] || [ "$was_enabled" = 1 ]; then
     done
 fi
 exec 8>&-
+if command -v opkg >/dev/null; then
+    registration_changed=1
+    opkg install /usr/share/tailscale-luci/registration.ipk 6>&- || fail 'native management registration failed'
+    opkg status tailscale-luci-run 6>&- | grep -q '^Status: .* installed$' || fail 'native registration is not installed'
+    if [ -x /bin/is-opkg ]; then
+        . /usr/lib/tailscale-luci/istore.sh
+        ts_istore_record "$arch" "$version" "$registered_before" || fail 'iStore record registration failed'
+    fi
+elif [ -x /bin/is-opkg ]; then
+    echo 'This APK firmware requires CLI uninstall; iStore management registration is currently supported on opkg firmware only.' >&2
+fi
 changed=0
 trap - EXIT HUP INT TERM
 echo "Installed Tailscale LuCI v$version ($arch); one combined core @CORE_VERSION@."

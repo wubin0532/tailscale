@@ -1,6 +1,6 @@
-# Tailscale LuCI v2.0
+# Tailscale LuCI v2.2.0
 
-OpenWrt/LibWrt 的 Tailscale 管理插件，插件界面版本 **v2.0**，离线自解压安装器版本 **2.0.0-r2**，核心版本 **1.104.1**。交付格式为 `.run`，不再构建 IPK/APK。
+OpenWrt/LibWrt 的 Tailscale 管理插件，插件界面版本 **v2.2.0**，离线自解压安装器版本 **2.2.0-r1**，核心版本 **1.104.1**。交付格式为 `.run`，不再构建 IPK/APK。
 
 从固定的官方源码构建完整功能核心，使用上游 `build_dist.sh --box --strip` 合并 CLI 与守护进程，再以 UPX 5.2.1 压缩。只安装一份 `tailscaled`；`tailscale` 是指向它的符号链接。没有使用任何 `ts_omit_*` 精简标签。此核心是官方源码构建产物，并非官方预编译文件。
 
@@ -17,14 +17,14 @@ OpenWrt/LibWrt 的 Tailscale 管理插件，插件界面版本 **v2.0**，离线
 
 ## 离线安装与升级
 
-下载 [Releases](https://github.com/wubin0532/tailscale/releases/tag/v2.0) 中与 CPU 对应的 `.run` 及 `SHA256SUMS-v2.0-run.txt`。本次由用户自行在 Home x86-64 真机测试；构建验证通过后直接更新 Release，尚未标为真机通过。
+下载 [Releases](https://github.com/wubin0532/tailscale/releases/tag/v2.0) 中与 CPU 对应的 `.run` 及 `SHA256SUMS-v2.2.0-run.txt`。本次由用户自行在 Home x86-64 真机测试；构建验证通过后直接更新 Release，尚未标为真机通过。
 
 ```sh
 uname -m
-sha256sum -c SHA256SUMS-v2.0-run.txt
+sha256sum -c SHA256SUMS-v2.2.0-run.txt
 # Home x86-64 示例；上传到路由器后以 root 执行
-sh tailscale-luci_2.0.0-r2_amd64.run --check
-sh tailscale-luci_2.0.0-r2_amd64.run --install
+sh tailscale-luci_2.2.0-r1_amd64.run --check
+sh tailscale-luci_2.2.0-r1_amd64.run --install
 ```
 
 校验清单包含四个架构；只下载一个包时，可单独对照该行校验。`--check` 验证内置载荷校验和，外部 SHA-256 清单用于核对完整文件。
@@ -46,10 +46,19 @@ sh tailscale-luci_2.0.0-r2_amd64.run --install
 
 ```sh
 # 只解压到一个尚不存在的目录
-sh tailscale-luci_2.0.0-r2_amd64.run --extract /tmp/tailscale-inspect
-# 卸载 .run 安装的文件，保留配置和登录身份
+sh tailscale-luci_2.2.0-r1_amd64.run --extract /tmp/tailscale-inspect
+# 完整卸载：清除配置、设备身份、私有依赖、备份和 Tailscale 防火墙规则
 sh /usr/lib/tailscale-luci-uninstall.sh
+# 仅移除程序，保留配置、身份与恢复备份，供再次安装
+sh /usr/lib/tailscale-luci-uninstall.sh --keep-state
+# 已缺少卸载脚本时，用原安装包进行恢复卸载
+sh tailscale-luci_2.2.0-r1_amd64.run --uninstall
+sh tailscale-luci_2.2.0-r1_amd64.run --uninstall-keep-state
 ```
+
+在使用 **opkg 的 iStoreOS** 上，`.run` 内携带一个约几 KB 的原生管理包 `tailscale-luci-run`，没有共享库依赖。安装器通过 opkg 登记；iStore 手动安装记录中的“卸载”会调用内置的完整清理脚本。SSH 直接安装和重复升级也维护该记录，不修改 iStore 本身。对外仍只发布 `.run`，不需要单独下载安装 IPK。APK 固件目前可以安装和通过上述 CLI 卸载，但尚未接入 iStore 的原生管理记录。
+
+卸载会拒绝与正在执行的服务/配置操作并发；如防火墙或网络存在未保存的修改，先保存或放弃这些修改再卸载。停止服务、删除规则或重载失败会返回非零状态。缺少配置、辅助脚本或安装清单时仍可恢复清理。自定义身份文件必须位于不经过符号链接的路径，且文件名为 `tailscaled.state` 或 `tailscale.state`，避免误删其它应用文件。完整卸载不会删除 Tailscale 控制台中的设备记录。
 
 “身份与配置清理”会删除登录状态，需重新授权。UPX 节约磁盘空间，不能据此承诺实际 RSS 下降；保留官方默认内存参数。
 
