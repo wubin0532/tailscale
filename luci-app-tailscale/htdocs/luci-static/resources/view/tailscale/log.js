@@ -3,7 +3,7 @@
 'require rpc';
 'require poll';
 'require ui';
-'require tailscale.ui as tsui';
+'require tailscale.ui-v2-r1 as tsui';
 var callGetLog = rpc.declare({ object: 'tailscale', method: 'get_log', expect: {} });
 return view.extend({
 	render: function() {

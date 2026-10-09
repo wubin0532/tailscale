@@ -4,7 +4,7 @@
 return baseclass.extend({
 	wrap: function(title, description, children) {
 		if (!document.getElementById('ts-v2-style'))
-			document.head.appendChild(E('link', { id: 'ts-v2-style', rel: 'stylesheet', href: L.resource('tailscale/ui-v2.css') }));
+			document.head.appendChild(E('link', { id: 'ts-v2-style', rel: 'stylesheet', href: L.resource('tailscale/ui-v2-r1.css') }));
 		return E('div', { 'class': 'ts-app' }, [
 			E('div', { 'class': 'ts-header' }, [E('div', {}, [E('h2', {}, title), E('p', {}, description)]), E('span', { 'class': 'ts-version' }, 'v2.0')])
 		].concat(children));
