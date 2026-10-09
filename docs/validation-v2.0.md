@@ -33,7 +33,7 @@ ARM64 两份官方二进制从约 69.08 MiB 压缩到 29.25 MiB，节约约 58% 
 
 ## 验证边界
 
-目前真机为 ARM64、opkg、fw4。其它三种架构、APK 和完整 OpenWrt SDK 未在真机运行。交付产物由 main 的 CI 构建；安装其中的 ARM64 IPK，核对交付文件与测试文件的校验和。按维护者要求不创建新分支或标签，GitHub Actions 保存安装包，不创建 GitHub Release。
+目前真机为 ARM64、opkg、fw4。其它三种架构、APK 和完整 OpenWrt SDK 未在真机运行。交付产物由 main 的 CI 构建；安装其中的 ARM64 IPK，核对交付文件与测试文件的校验和。按维护者最新要求，所有代码提交到 main，不再新建开发分支；v2.0 Release 挂载同一批验证过的安装包，版本标签指向 main 的发布提交。
 
 真机内核没有 smaps/smaps_rollup，不能报告 PSS。RSS 和 VmSwap 分开记录，VSZ 不作为实际内存。查询内存改进不等于守护进程内存下降；UPX 主要节约存储。原旧身份缺少 Home 的根因未获证实，不将新身份成功归因于单一页面修复。
 

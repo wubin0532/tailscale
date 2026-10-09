@@ -15,7 +15,7 @@ OpenWrt 的 Tailscale 管理插件，包含经 UPX 压缩的官方独立 `tailsc
 
 ## 安装
 
-从 [main 构建页面](https://github.com/wubin0532/tailscale/actions/workflows/release.yml?query=branch%3Amain) 打开通过的构建，下载 `tailscale-luci-packages` 产物，按固件架构与包管理器选择文件，并对照 `SHA256SUMS-v2.0.txt` 校验。按维护者要求，v2.0 代码直接交付到 main，不创建版本标签或 GitHub Release。
+从 [v2.0 Releases](https://github.com/wubin0532/tailscale/releases/tag/v2.0) 下载与固件架构、包管理器相符的安装包，先对照 `SHA256SUMS-v2.0.txt` 校验。所有代码提交到 main；Release 使用指向 main 发布提交的 v2.0 版本标签，并挂载真机测试过的同一批安装包。
 
 ```sh
 # 使用 opkg 的固件
