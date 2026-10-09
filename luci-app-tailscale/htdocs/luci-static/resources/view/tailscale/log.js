@@ -3,7 +3,7 @@
 'require rpc';
 'require poll';
 'require ui';
-'require tailscale.ui-v2-2-0-r1 as tsui';
+'require tailscale.ui-v2-2-0-r2 as tsui';
 var callGetLog = rpc.declare({ object: 'tailscale', method: 'get_log', expect: {} });
 return view.extend({
 	render: function() {
@@ -34,7 +34,7 @@ return view.extend({
 		var nearBottom = pre.scrollHeight - pre.scrollTop - pre.clientHeight < 60;
 		pre.textContent = (this.log || '').split('\n').filter(L.bind(function(line) { return !this.query || line.toLowerCase().indexOf(this.query) >= 0; }, this)).join('\n') || _('No matching log entries.');
 		if (nearBottom) pre.scrollTop = pre.scrollHeight;
-		var el = document.getElementById('ts_log_status'); if (el) el.textContent = (this.paused ? _('Paused') : nearBottom ? _('Following latest entries') : _('Auto-follow paused while scrolling')) + ' · ' + new Date().toLocaleTimeString();
+		var el = document.getElementById('ts_log_status'); if (el) el.textContent = (this.paused ? _('Paused') : nearBottom ? _('Following latest entries') : _('Auto-follow paused while scrolling')) + ' · ' + tsui.time(Date.now());
 	},
 	handleSaveApply: null, handleSave: null, handleReset: null
 });

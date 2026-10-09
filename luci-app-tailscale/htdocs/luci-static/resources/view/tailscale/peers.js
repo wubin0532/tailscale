@@ -3,7 +3,7 @@
 'require rpc';
 'require poll';
 'require ui';
-'require tailscale.ui-v2-2-0-r1 as tsui';
+'require tailscale.ui-v2-2-0-r2 as tsui';
 
 var callGetStatus = rpc.declare({ object: 'tailscale', method: 'get_status', expect: {} });
 var callPing = rpc.declare({ object: 'tailscale', method: 'ping', params: ['host'], expect: {} });
@@ -22,7 +22,7 @@ return view.extend({
 				]),
 				E('div', { id: 'ts_peer_notice', 'class': 'ts-notice', role: 'status', 'aria-live': 'polite' }, _('Loading...')),
 				E('table', { 'class': 'table ts-peer-table' }, [
-					E('thead', {}, E('tr', {}, [_('Node'), 'Tailscale IP', _('OS'), _('Status'), _('Connection'), _('Last Seen'), _('Detection')].map(function(t) { return E('th', {}, t); }))),
+					E('thead', {}, E('tr', {}, [_('Node'), _('Tailscale IP'), _('OS'), _('Status'), _('Connection'), _('Last Seen'), _('Detection')].map(function(t) { return E('th', {}, t); }))),
 					E('tbody', { id: 'ts_peers' })
 				])
 			])
@@ -75,7 +75,7 @@ return view.extend({
 			var btn = E('button', { 'class': 'btn cbi-button ts-success', 'data-peer': p._id, click: L.bind(this.handlePing, this, ip, p._id) }, check.pending ? _('Testing connection...') : _('Ping'));
 			btn.disabled = !!check.pending || !ip;
 			var values = [E('strong', {}, p.HostName || p.DNSName || '—'), (p.TailscaleIPs || []).join('\n') || '—', p.OS || '—', E('span', { 'class': p.Online ? 'ts-good' : 'ts-neutral' }, p.Online ? _('Online') : _('Offline')), conn, p.Online ? _('now') : this.fmtSeen(p.LastSeen), [btn, E('span', { 'class': 'ts-peer-result', 'aria-live': 'polite' }, check.result || '')]];
-			var titles = [_('Node'), 'Tailscale IP', _('OS'), _('Status'), _('Connection'), _('Last Seen'), _('Detection')];
+			var titles = [_('Node'), _('Tailscale IP'), _('OS'), _('Status'), _('Connection'), _('Last Seen'), _('Detection')];
 			tbody.appendChild(E('tr', {}, values.map(function(value, i) { return E('td', { 'data-title': titles[i] }, value); })));
 			if (focused === p._id && !check.pending) btn.focus();
 		}, this));
@@ -85,7 +85,7 @@ return view.extend({
 		if (!ip || (this.checks[id] && this.checks[id].pending)) return Promise.resolve();
 		var check = this.checks[id] = { pending: true, result: '' }; this.drawPeers();
 		return callPing(ip).then(function(res) {
-			if (!res || res.success !== true) throw new Error((res && res.output) || _('Detection failed.'));
+			if (!res || res.success !== true) throw new Error(tsui.output(res && res.output) || _('Detection failed.'));
 			check.result = (res.output || '').trim();
 		}).catch(function(err) { check.result = _('Failed: %s').format(err.message || String(err)); }).finally(L.bind(function() { check.pending = false; this.drawPeers(); }, this));
 	},

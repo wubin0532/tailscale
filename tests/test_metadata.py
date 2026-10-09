@@ -19,11 +19,11 @@ class MetadataTests(unittest.TestCase):
   for entry in menu.values():
    action=entry.get('action',{})
    if action.get('type')=='view':
-    self.assertTrue(action['path'].endswith('-v2-2-0-r1'))
-    self.assertIn('require tailscale.ui-v2-2-0-r1 as tsui',(resources/'view'/(action['path']+'.js')).read_text())
-  self.assertTrue((resources/'tailscale/ui-v2-2-0-r1.js').is_file())
-  self.assertTrue((resources/'tailscale/ui-v2-2-0-r1.css').is_file())
-  self.assertIn('tailscale/ui-v2-2-0-r1.css',(resources/'tailscale/ui-v2-2-0-r1.js').read_text())
+    self.assertTrue(action['path'].endswith('-v2-2-0-r2'))
+    self.assertIn('require tailscale.ui-v2-2-0-r2 as tsui',(resources/'view'/(action['path']+'.js')).read_text())
+  self.assertTrue((resources/'tailscale/ui-v2-2-0-r2.js').is_file())
+  self.assertTrue((resources/'tailscale/ui-v2-2-0-r2.css').is_file())
+  self.assertIn('tailscale/ui-v2-2-0-r2.css',(resources/'tailscale/ui-v2-2-0-r2.js').read_text())
  def test_shell_syntax(self):
   import subprocess
   for p in ['etc/init.d/tailscale','usr/lib/tailscale-luci.sh','usr/libexec/rpcd/tailscale','usr/libexec/tailscale-route-watch']:

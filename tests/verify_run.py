@@ -33,6 +33,7 @@ def check(path,execute=False):
     assert parts[0]=='data',name
   assert members['data/usr/sbin/tailscale'].issym()
   assert members['data/usr/sbin/tailscale'].linkname=='tailscaled'
+  assert members['data/usr/lib/lua/luci/i18n/tailscale.zh-cn.lmo'].size > 0
   assert members['data/etc/config/tailscale'].mode==0o600
   assert members['data/usr/sbin/tailscaled'].mode==0o755
   checksums=archive.extractfile('SHA256SUMS').read().decode().splitlines()

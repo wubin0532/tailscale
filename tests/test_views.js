@@ -14,7 +14,7 @@ function E(tag, attrs, children) {
 }
 const L = {bind:(fn,ctx,...args)=>fn.bind(ctx,...args),resource:s=>s};
 String.prototype.format = function(...args) {let i=0;return this.replace(/%[sd]/g,()=>args[i++]);};
-const tsui={wrap:(t,d,c)=>E('div',{},c),updated:t=>String(t||''),message:r=>!r.running?'stopped':r.success===false?'read failed':!r.online?'disconnected':''};
+const tsui={time:t=>String(t),output:t=>t||'',state:t=>t,wrap:(t,d,c)=>E('div',{},c),updated:t=>String(t||''),message:r=>!r.running?'stopped':r.success===false?'read failed':!r.online?'disconnected':''};
 const document={getElementById:id=>nodes[id],activeElement:null,head:{appendChild(){}}};
 let passed=0;
 async function check(name,fn){await fn();console.log('PASS '+name);passed++;}
@@ -73,5 +73,59 @@ function findButton(root){if(root.tag==='button')return root;for(const c of root
  let logCalls=0;const logs=load('log',{view:{extend:x=>x},rpc:{declare:()=>()=>{logCalls++;return Promise.resolve({log:'first\nerror Home'})}},poll:{add(){}},ui:{addNotification(){}},navigator:{}});logs.render();await new Promise(r=>setImmediate(r));
  await check('paused log skips poll and retains text',async()=>{logs.paused=true;const before=logCalls;await logs.updateLog();assert.equal(logCalls,before);assert.match(nodes.ts_log.textContent,/first/);});
  await check('log filter and explicit refresh while paused',async()=>{logs.query='home';logs.drawLog();assert.equal(nodes.ts_log.textContent,'error Home');await logs.updateLog(true);assert.match(nodes.ts_log_status.textContent,/Paused/);});
+
+ const translations={};
+ const po=fs.readFileSync(path.join(__dirname,'../luci-app-tailscale/po/zh_Hans/tailscale.po'),'utf8');
+ for(const match of po.matchAll(/^msgid (".*")\nmsgstr (".*")$/gm))translations[JSON.parse(match[1])]=JSON.parse(match[2]);
+ const text=root=>typeof root==='string'?root:[root?.textContent||'',root?.attrs?.placeholder||'',...(root?.children||[]).map(text)].join(' ');
+ for(const lang of ['en','zh-cn']){
+  const translate=key=>lang==='zh-cn'?(translations[key]||key):key;
+  const doc={...document,documentElement:{lang}};
+  const shared=new Function('baseclass','E','L','_','document',fs.readFileSync(path.join(dir,'../../tailscale/ui.js'),'utf8'))({extend:x=>x},E,L,translate,doc);
+  const env={_:translate,document:doc,tsui:shared,view:{extend:x=>x},poll:{add(){}},ui:{},uci:{get:()=>null,load:()=>Promise.resolve()}};
+  await check(lang+' status, devices and logs render selected language',async()=>{
+   const state={success:true,running:true,online:true,backend_state:'Starting',raw:JSON.stringify({BackendState:'Starting'})};
+   const view=load('status',{...env,rpc:{declare:()=>()=>Promise.resolve(state)}});
+   const rendered=view.render();await view.updateStatus();
+   assert.ok(text(rendered).includes(translate('Enable service')));
+   assert.ok(text(rendered).includes(translate('Tailscale IP')));
+   assert.equal(nodes.ts_running.textContent,translate('Running'));
+   assert.equal(nodes.ts_login_desc.textContent,translate('Starting'));
+   for(const name of ['peers','log']){
+    const v=load(name,{...env,rpc:{declare:()=>()=>Promise.resolve({...state,log:'core original log'})},navigator:{}});
+    const r=v.render();await new Promise(resolve=>setImmediate(resolve));
+    assert.ok(text(r).includes(translate(name==='peers'?'Search name or IP':'Pause'))||r.children.some(c=>c.attrs?.placeholder===translate('Search name or IP')));
+    if(name==='peers')assert.equal(nodes.ts_peer_updated.textContent,translate('Waiting for status'));
+    else assert.equal(nodes.ts_log.textContent,'core original log');
+   }
+  });
+  await check(lang+' settings labels and validation retain system language',async()=>{
+   const labels=[],opts={};
+   const section={option(type,name,title){labels.push(title);return opts[name]={value(){}};}};
+   const form={Map:function(){this.section=(type,name,kind,title)=>{labels.push(title);return section;};this.render=()=>Promise.resolve(E('form',{},labels));}};
+   const v=load('settings',{...env,form,rpc:{declare:()=>()=>Promise.resolve({})},validation:{parseIPv4,parseIPv6}});
+   const r=await v.render();
+   assert.ok(text(r).includes(translate('Connection and subnets')));
+   assert.ok(labels.includes(translate("Share this router's local subnets")));
+   assert.equal(opts.advertise_routes.validate('','192.168.123.0/24'),true);
+   assert.equal(opts.advertise_routes.validate('','192.168.123.1/24'),translate('Enter a network address, for example 192.168.123.0/24, not 192.168.123.1/24.'));
+  });
+  await check(lang+' common backend errors translate without rewriting core diagnostics',async()=>{
+   assert.equal(shared.output('Another Tailscale operation is still running.\nraw 100.90.126.80'),translate('Another Tailscale operation is still running.')+'\nraw 100.90.126.80');
+   assert.equal(shared.state('NeedsMachineAuth'),translate('Awaiting device approval'));
+   assert.equal(shared.state('future-core-state'),translate('Unknown'));
+   assert.equal(shared.state('constructor'),translate('Unknown'));
+   assert.equal(shared.message({running:true,success:false,error:'Status refresh is in progress.'}),translate('Status refresh is in progress.'));
+  });
+ }
+ await check('time formatting follows LuCI language instead of browser default',async()=>{
+  let locale;const doc={documentElement:{lang:'zh-cn'}};
+  function DateMock(){this.toLocaleTimeString=value=>{locale=value;return '12:30';};}
+  const shared=new Function('baseclass','E','L','_','document','Date',fs.readFileSync(path.join(dir,'../../tailscale/ui.js'),'utf8'))({extend:x=>x},E,L,x=>x,doc,DateMock);
+  assert.equal(shared.updated(1),'Updated: 12:30');assert.equal(locale,'zh-cn');
+  doc.documentElement.lang='en';shared.time(1);assert.equal(locale,'en');
+  doc.documentElement.lang='';shared.time(1);assert.equal(locale,'en');
+ });
+
  console.log(passed+' view tests passed.');
 })().catch(e=>{console.error(e);process.exit(1);});

@@ -47,6 +47,7 @@ jobs:
             build/combined
             build/source
           key: tailscale-core-${{ runner.os }}-${{ hashFiles('core-version.env', 'prepare-core.sh') }}
+          restore-keys: tailscale-core-${{ runner.os }}-
       - name: Build full-feature combined core and offline installers
         run: ./build-run.sh
       - name: Save verified core build cache
@@ -57,6 +58,8 @@ jobs:
             build/combined
             build/source
           key: tailscale-core-${{ runner.os }}-${{ hashFiles('core-version.env', 'prepare-core.sh') }}
+      - name: Verify compiled system-language translations
+        run: python3 tests/verify_i18n.py /tmp/luci/modules/luci-base/src
       - name: Verify payloads and executable dependencies
         run: python3 tests/verify_run.py --execute
       - name: Verify native OpenWrt opkg and iStore install and uninstall

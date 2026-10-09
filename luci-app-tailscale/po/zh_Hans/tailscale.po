@@ -1,11 +1,14 @@
 msgid ""
-msgstr "Content-Type: text/plain; charset=UTF-8"
+msgstr ""
+"Language: zh_CN\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
 
 msgid "Tailscale"
 msgstr "Tailscale"
 
-msgid "Tailscale connects your devices for easy access to remote resources. See "
-msgstr "Tailscale 连接您的设备，以便轻松访问远程资源。详情请查看 "
+msgid "Tailscale connects your devices for easy access to remote resources. See"
+msgstr "Tailscale 连接您的设备，以便轻松访问远程资源。详情请查看"
 
 msgid "Service Status"
 msgstr "服务状态"
@@ -23,7 +26,7 @@ msgid "Enable service"
 msgstr "启用服务"
 
 msgid "Running"
-msgstr "Running"
+msgstr "运行中"
 
 msgid "Stopped"
 msgstr "已停止"
@@ -307,7 +310,7 @@ msgstr "将注销登录、停止服务，并清理防火墙规则、状态文件
 msgid "Uninstalling..."
 msgstr "正在卸载..."
 
-msgid "To access your home network from this router, enable remote subnet access below. The home router must publish its LAN subnet and have that route approved in the Tailscale admin console. An internet exit node is not needed. See "
+msgid "To access your home network from this router, enable remote subnet access below. The home router must publish its LAN subnet and have that route approved in the Tailscale admin console. An internet exit node is not needed. See"
 msgstr "办公室访问家里：在下方开启“访问远程内网”，并让家里路由器发布家庭网段、在 Tailscale 控制台批准该路由。只访问家庭内网时，无需设置上网出口。详情："
 
 msgid "Access remote subnets"
@@ -409,7 +412,7 @@ msgstr "实际运行的 Tailscale 节点"
 msgid "Configured local subnets"
 msgstr "配置中待发布的本地网段"
 
-msgid "The daemon process and configured subnets below do not confirm that routes are applied or approved. Check the current device name, login state and Tailscale admin console. See "
+msgid "The daemon process and configured subnets below do not confirm that routes are applied or approved. Check the current device name, login state and Tailscale admin console. See"
 msgstr "下方的进程状态和配置网段不能证明路由已生效或已获批准。请结合实际设备名称、登录状态和 Tailscale 控制台核对。详情："
 
 msgid "Applied local subnets"
@@ -642,3 +645,66 @@ msgstr "查看配置说明"
 
 msgid "Testing connection..."
 msgstr "正在检测连接…"
+
+msgid "Tailscale IP"
+msgstr "Tailscale 地址"
+
+msgid "Initializing"
+msgstr "正在初始化"
+
+msgid "Starting"
+msgstr "正在启动"
+
+msgid "Awaiting device approval"
+msgstr "等待批准设备"
+
+msgid "Status refresh is in progress."
+msgstr "正在刷新状态。"
+
+msgid "Cannot read local Tailscale status. Check the service and control connection."
+msgstr "无法读取本地 Tailscale 状态，请检查服务与控制连接。"
+
+msgid "Device name may contain only letters, digits, dots and hyphens."
+msgstr "设备名称只能包含字母、数字、点和连字符。"
+
+msgid "Exit node must be a Tailscale IP or device name, not a subnet."
+msgstr "出口节点必须填写 Tailscale 地址或设备名，不能填写网段。"
+
+msgid "Control server URL must not contain spaces."
+msgstr "控制服务器地址不能包含空格。"
+
+msgid "Headscale server must be a complete HTTPS URL."
+msgstr "Headscale 服务器必须填写完整 HTTPS 地址。"
+
+msgid "Cannot inspect peer routes; remote subnet access was not enabled."
+msgstr "无法检查对端路由，未启用远程子网访问。"
+
+msgid "Cannot parse peer routes; remote subnet access was not enabled."
+msgstr "无法解析对端路由，未启用远程子网访问。"
+
+msgid "Cannot inspect local networks; remote subnet access was not enabled."
+msgstr "无法检查本地网段，未启用远程子网访问。"
+
+msgid "Tailscale operation timed out. Check the login state and try again."
+msgstr "Tailscale 操作超时，请检查登录状态后重试。"
+
+msgid "Status refresh is in progress. Apply settings again shortly."
+msgstr "正在刷新状态，请稍后再次应用设置。"
+
+msgid "Tailscale is not ready. Check DNS/Fake-IP and control-server connectivity. Settings will retry when the daemon becomes ready."
+msgstr "Tailscale 尚未就绪，请检查 DNS/Fake-IP 与控制服务器连接；服务就绪后会重新应用设置。"
+
+msgid "Approve this device in the Tailscale admin console before applying settings."
+msgstr "请先在 Tailscale 控制台批准此设备，再应用设置。"
+
+msgid "Changing control server requires Logout then Login. Other settings were not changed."
+msgstr "更换控制服务器需要先注销再登录，其它设置未修改。"
+
+msgid "Another Tailscale operation is still running."
+msgstr "另一个 Tailscale 操作仍在运行，请稍后重试。"
+
+msgid "invalid host"
+msgstr "主机地址无效"
+
+msgid "Invalid enabled value"
+msgstr "服务开关参数无效"

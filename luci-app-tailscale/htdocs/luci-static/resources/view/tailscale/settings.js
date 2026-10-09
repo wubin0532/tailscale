@@ -5,7 +5,7 @@
 'require validation';
 'require rpc';
 'require poll';
-'require tailscale.ui-v2-2-0-r1 as tsui';
+'require tailscale.ui-v2-2-0-r2 as tsui';
 
 var callGetStatus = rpc.declare({ object: 'tailscale', method: 'get_status', expect: {} });
 
@@ -202,7 +202,7 @@ return view.extend({
 			poll.add(function() {
 				return callGetStatus().then(function(res) {
 					error.textContent = res.apply_error
-						? _('Settings were not fully applied: %s').format(res.apply_error)
+						? _('Settings were not fully applied: %s').format(tsui.output(res.apply_error))
 						: (res.busy ? _('Applying settings or waiting for login...') : '');
 					error.style.display = error.textContent ? '' : 'none';
 				}).catch(function(err) { error.textContent = err.message || _('Status could not be refreshed.'); error.style.display = ''; });

@@ -4,7 +4,7 @@
 'require uci';
 'require ui';
 'require poll';
-'require tailscale.ui-v2-2-0-r1 as tsui';
+'require tailscale.ui-v2-2-0-r2 as tsui';
 
 var callGetStatus = rpc.declare({
 	object: 'tailscale',
@@ -61,7 +61,7 @@ return view.extend({
 		checkbox.checked = uci.get('tailscale', 'settings', 'enabled') == '1';
 		checkbox.addEventListener('change', L.bind(this.handleEnable, this));
 		var metrics = [[_('Current device'), 'ts_hostname'], [_('Daemon process'), 'ts_running'], [_('Control connection'), 'ts_online'], [_('Visible devices'), 'ts_count']];
-		var details = [['Tailscale IP', 'ts_ips'], [_('Configured local subnets'), 'ts_routes'], [_('Applied local subnets'), 'ts_actual_routes'], [_('Remote subnet access in use'), 'ts_accept_routes'], [_('Bound User'), 'ts_user'], [_('Node public key'), 'ts_node'], [_('Core version'), 'ts_core_version']];
+		var details = [[_('Tailscale IP'), 'ts_ips'], [_('Configured local subnets'), 'ts_routes'], [_('Applied local subnets'), 'ts_actual_routes'], [_('Remote subnet access in use'), 'ts_accept_routes'], [_('Bound User'), 'ts_user'], [_('Node public key'), 'ts_node'], [_('Core version'), 'ts_core_version']];
 		var v = tsui.wrap(_('Tailscale'), _('Your router connection and private network at a glance.'), [
 			E('div', { id: 'ts_alert_box' }),
 			E('div', { id: 'ts_apply_error', 'class': 'ts-notice', role: 'status', 'aria-live': 'polite', style: 'display:none' }),
@@ -90,7 +90,7 @@ return view.extend({
 		if (this.fetching) return Promise.resolve(); this.fetching = true;
 		return callGetStatus().then(L.bind(function(res) {
 			var el = document.getElementById('ts_running'); if (!el) return;
-			var message = res.apply_error ? _('Settings were not fully applied: %s').format(res.apply_error) : res.busy ? _('Applying settings or waiting for login...') : tsui.message(res);
+			var message = res.apply_error ? _('Settings were not fully applied: %s').format(tsui.output(res.apply_error)) : res.busy ? _('Applying settings or waiting for login...') : tsui.message(res);
 			var errorBox = document.getElementById('ts_apply_error'); errorBox.textContent = message; errorBox.style.display = message ? '' : 'none';
 			if (res.success === false || res.stale) { document.getElementById('ts_updated').textContent = tsui.updated(res.fetched_at) + ' · ' + _('Stale'); return; }
 			el.textContent = res.running ? _('Running') : _('Stopped'); el.className = res.running ? 'ts-good' : 'ts-neutral';
@@ -111,7 +111,7 @@ return view.extend({
 			if (!this.accountBusy) {
 				var desc = document.getElementById('ts_login_desc'), act = document.getElementById('ts_actions');
 				var action = res.backend_state === 'NeedsLogin' ? 'login' : res.user ? 'logout' : '';
-				desc.textContent = action === 'login' ? _('Not logged in') : action === 'logout' ? _('Authorized') : res.backend_state || _('Stopped');
+				desc.textContent = action === 'login' ? _('Not logged in') : action === 'logout' ? _('Authorized') : tsui.state(res.backend_state || 'Stopped');
 				if (this.accountAction !== action) {
 					this.accountAction = action; act.textContent = '';
 					if (action) act.appendChild(E('button', { 'class': 'btn cbi-button ' + (action === 'login' ? 'ts-success' : 'ts-warning'), click: L.bind(action === 'login' ? this.handleLogin : this.handleLogout, this) }, action === 'login' ? _('Login') : _('Logout & Unbind')));
@@ -150,7 +150,7 @@ return view.extend({
 		ev.target.disabled = true;
 		ev.target.textContent = _('Requesting login URL...');
 		return callLogin().then(function(res) {
-			if (!res || !res.success) throw new Error((res && res.output) || _('Failed'));
+			if (!res || !res.success) throw new Error(tsui.output(res && res.output) || _('Failed'));
 		}).catch(L.bind(function(err) {
 			this.loginRequested = false;
 			ui.addNotification(null, E('p', err.message || String(err)));
@@ -203,10 +203,10 @@ return view.extend({
 		btn.disabled = true;
 		btn.textContent = _('Testing connection...');
 		return callNetcheck().then(function(res) {
-			if (!res || res.success === false) throw new Error((res && res.output) || _('Detection failed.'));
+			if (!res || res.success === false) throw new Error(tsui.output(res && res.output) || _('Detection failed.'));
 			ui.showModal(_('Netcheck Result'), [
 				E('pre', { 'style': 'max-height:400px;overflow:auto;font-size:12px' },
-					(res && res.output) || _('No result')),
+					tsui.output(res && res.output) || _('No result')),
 				E('div', { 'class': 'right' }, [
 					E('button', { 'class': 'btn cbi-button', 'click': ui.hideModal }, _('Close'))
 				])
@@ -222,7 +222,7 @@ return view.extend({
 		ev.target.disabled = true;
 		ui.showModal(null, E('p', { 'class': 'spinning' }, _('Applying changes...')));
 		return callSetEnabled(val).then(L.bind(function(res) {
-			if (!res || !res.success) throw new Error((res && res.output) || _('Failed'));
+			if (!res || !res.success) throw new Error(tsui.output(res && res.output) || _('Failed'));
 			ui.hideModal();
 			return this.updateStatus();
 		}, this)).catch(function(e) {
@@ -245,7 +245,7 @@ return view.extend({
 					'click': L.bind(function() {
 						ui.hideModal();
 						return callLogout().then(function(res) {
-							if (!res || !res.success) throw new Error((res && res.output) || _('Failed'));
+							if (!res || !res.success) throw new Error(tsui.output(res && res.output) || _('Failed'));
 							window.location.reload();
 						}).catch(function(err) { ui.addNotification(null, E('p', err.message || String(err))); });
 					}, this)
@@ -266,7 +266,7 @@ return view.extend({
 						ui.hideModal();
 						ui.showModal(null, E('p', { 'class': 'spinning' }, _('Uninstalling...')));
 						return callUninstall().then(function(res) {
-							if (!res || !res.success) throw new Error((res && res.output) || _('Failed'));
+							if (!res || !res.success) throw new Error(tsui.output(res && res.output) || _('Failed'));
 							ui.hideModal();
 							window.location.href = L.url('admin/status/overview');
 						}).catch(function(err) {
