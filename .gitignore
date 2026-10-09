@@ -2,3 +2,5 @@
 build/
 dist/
 preview/
+__pycache__/
+outputs/

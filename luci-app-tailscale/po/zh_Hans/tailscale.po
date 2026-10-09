@@ -306,3 +306,189 @@ msgstr "将注销登录、停止服务，并清理防火墙规则、状态文件
 
 msgid "Uninstalling..."
 msgstr "正在卸载..."
+
+msgid "To access your home network from this router, enable remote subnet access below. The home router must publish its LAN subnet and have that route approved in the Tailscale admin console. An internet exit node is not needed. See "
+msgstr "办公室访问家里：在下方开启“访问远程内网”，并让家里路由器发布家庭网段、在 Tailscale 控制台批准该路由。只访问家庭内网时，无需设置上网出口。详情："
+
+msgid "Access remote subnets"
+msgstr "访问远程内网（接收子网路由）"
+
+msgid "Enable on the office router to access a home subnet such as 192.168.199.0/24. Before enabling, check that approved routes from other nodes do not overlap this router's LAN. A duplicate LAN route can make the router and internet unreachable. Publishing a local subnet is a separate setting."
+msgstr "办公室访问家里的 192.168.199.0/24 等网段时开启。启用前，请确认其他节点已获批准的路由与本机 LAN 不重叠；重复的本地网段可能导致路由器管理界面和上网中断。向别人发布本地网段需单独设置。"
+
+msgid "Tailscale device name"
+msgstr "Tailscale 设备名称"
+
+msgid "Name reported to Tailscale, for example Office-1 or Home. Leave empty to use the router's system hostname. Save and apply to update it. A machine name manually renamed in the Tailscale admin console may differ."
+msgstr "上报给 Tailscale 的名称，例如 Office-1 或 Home；留空使用路由器的系统主机名，保存并应用后更新。如果在 Tailscale 控制台手动改过设备名称，控制台名称可能与这里不同。"
+
+msgid "Share this router's local subnets"
+msgstr "发布本地网段（供其他设备访问）"
+
+msgid "Let other Tailscale devices access networks behind this router. On the home router, enter 192.168.199.0/24. On the office router, leave empty if you only need to access home. Enter a network address such as 192.168.123.0/24, not the router address 192.168.123.1/24. Each route also needs approval in the Tailscale admin console."
+msgstr "让其他 Tailscale 设备访问本路由器后面的内网。家里路由器填写 192.168.199.0/24；办公室只需访问家里时，这里留空。必须填写网段地址，如 192.168.123.0/24，不能填路由器地址 192.168.123.1/24。发布后还需在 Tailscale 控制台批准。"
+
+msgid "Login auth key (optional)"
+msgstr "自动登录密钥（可选）"
+
+msgid "For automatic login using a Tailscale auth key. Leave empty when already logged in or when using the login link or QR code. This is not the router password or a Tailscale API token."
+msgstr "使用 Tailscale 的 Auth key 自动登录。已经登录，或使用登录链接、二维码授权时留空。这里不是路由器密码，也不是 Tailscale API 令牌。"
+
+msgid "Headscale server URL (optional)"
+msgstr "自建 Headscale 地址（可选）"
+
+msgid "Leave empty to use official Tailscale. Fill in a complete HTTPS URL only when using your own Headscale server. Do not enter a username, router IP or subnet here."
+msgstr "使用官方 Tailscale 时留空。只有使用自建 Headscale 时才填写完整的 HTTPS 地址；不要填写用户名、路由器 IP 或网段。"
+
+msgid "Remote shell via Tailscale SSH"
+msgstr "启用 Tailscale SSH 远程终端"
+
+msgid "Allow shell login to this router using Tailscale SSH and its access policy. This is separate from the router's normal SSH service and is not required to open the home router's web interface."
+msgstr "通过 Tailscale SSH 及其访问规则登录本路由器终端。它与路由器原有的 SSH 服务是两套机制；访问家里路由器网页无需开启。"
+
+msgid "Internet routing (optional)"
+msgstr "上网出口（仅访问内网时无需设置）"
+
+msgid "Offer this router as an internet exit"
+msgstr "让其他设备通过本路由器上网"
+
+msgid "Let other Tailscale devices use this router's internet connection. Requires approval in the Tailscale admin console. Leave disabled when you only need access to a home subnet."
+msgstr "将本路由器作为上网出口，让其他 Tailscale 设备使用这里的互联网连接；还需在控制台批准。只访问家里内网时保持关闭。"
+
+msgid "Use another device for internet access"
+msgstr "通过其他 Tailscale 设备上网"
+
+msgid "Optional: route this router's internet traffic through an approved exit node. Enter that device's Tailscale IP (100.x.x.x) or name, not a LAN IP or subnet such as 192.168.123.0/24. Leave empty for normal internet access and for office-to-home subnet access."
+msgstr "可选：通过已获批准的出口节点上网。填写对方的 Tailscale IP（100.x.x.x）或设备名称；不要填写内网 IP 或 192.168.123.0/24 这样的网段。正常上网、办公室访问家里内网时均留空。"
+
+msgid "Leave empty for normal internet access"
+msgstr "留空使用原来的上网线路"
+
+msgid "Keep local LAN access when using an exit"
+msgstr "使用其他上网出口时保留本地内网访问"
+
+msgid "Keep access to this router's own LAN while using another device for internet access. This does not enable access to a remote home subnet."
+msgstr "通过其他设备上网时，仍可直接访问本路由器所在的本地内网。这一项不能代替“访问远程内网”。"
+
+msgid "Create Tailscale firewall rules automatically"
+msgstr "自动创建 Tailscale 防火墙规则"
+
+msgid "Create rules for Tailscale traffic instead of configuring them manually. If a Tailscale zone already exists, the current plugin skips automatic setup; check that zone in Network > Firewall."
+msgstr "自动创建 Tailscale 流量所需的规则，省去手动添加步骤。已有 tailscale 区域时，当前插件会跳过创建；请在“网络 → 防火墙”核对已有区域。"
+
+msgid "Access to this router from Tailscale"
+msgstr "Tailscale 设备访问本路由器的策略"
+
+msgid "Default policy for Tailscale devices connecting to services on this router, such as its web interface or normal SSH. Access to other LAN devices is controlled separately below."
+msgstr "控制 Tailscale 设备能否访问本路由器的网页、普通 SSH 等服务。访问内网中的其他设备由下面的互访设置控制。"
+
+msgid "Allow LAN and Tailscale devices to communicate"
+msgstr "允许本地内网与 Tailscale 双向互访"
+
+msgid "Create forwarding rules in both directions. Needed when office LAN devices without Tailscale use this router to reach home. It also permits traffic from Tailscale to the local LAN, subject to Tailscale access rules."
+msgstr "创建两个方向的转发规则。办公室电脑未安装 Tailscale、通过本路由器访问家里时需要开启；同时也允许 Tailscale 流量进入本地内网，仍受 Tailscale 访问规则限制。"
+
+msgid "Use this router's Tailscale IP for LAN traffic (NAT)"
+msgstr "内网流量使用本路由器的 Tailscale IP（NAT）"
+
+msgid "Translate office LAN traffic leaving through Tailscale to this router's Tailscale IP, so replies can return without a separate office LAN route. Usually keep enabled for office devices accessing home through this router."
+msgstr "将办公室内网发往 Tailscale 的流量转换成本路由器的 Tailscale IP，便于响应返回，无需另外发布办公室网段。办公室设备通过本路由器访问家里时通常保持开启。"
+
+msgid "Allowed service ports on this router"
+msgstr "允许访问本路由器的服务端口"
+
+msgid "Add exceptions to the Reject or Drop policy above, for example 80 or 443 for the web interface and 22 for normal SSH. These rules allow both TCP and UDP. Leave empty for no exceptions; the selected policy still applies. This list does not restrict ports on other LAN devices."
+msgstr "在上面的策略为“拒绝”或“丢弃”时，添加允许访问的端口，如网页用的 80、443 或普通 SSH 的 22；规则同时允许 TCP 和 UDP。留空表示不添加例外，仍按所选策略处理。这份列表不限制其他内网设备的端口。"
+
+msgid "Daemon process"
+msgstr "后台进程状态"
+
+msgid "Current Tailscale node"
+msgstr "实际运行的 Tailscale 节点"
+
+msgid "Configured local subnets"
+msgstr "配置中待发布的本地网段"
+
+msgid "The daemon process and configured subnets below do not confirm that routes are applied or approved. Check the current device name, login state and Tailscale admin console. See "
+msgstr "下方的进程状态和配置网段不能证明路由已生效或已获批准。请结合实际设备名称、登录状态和 Tailscale 控制台核对。详情："
+
+msgid "Applied local subnets"
+msgstr "实际已应用的本地网段"
+
+msgid "Remote subnet access in use"
+msgstr "实际接收远程内网路由"
+
+msgid "Settings were not fully applied: %s"
+msgstr "设置未全部生效：%s"
+
+msgid "Applying settings or waiting for login..."
+msgstr "正在应用设置或等待登录授权…"
+
+msgid "Enabled"
+msgstr "已开启"
+
+msgid "Disabled"
+msgstr "已关闭"
+
+msgid "Failed"
+msgstr "失败"
+
+msgid "Enter a valid subnet in CIDR format."
+msgstr "请填写正确的 CIDR 网段，如 192.168.199.0/24。"
+
+msgid "Enter a network address, for example 192.168.123.0/24, not 192.168.123.1/24."
+msgstr "请填写网段地址，如 192.168.123.0/24，不能填 192.168.123.1/24。"
+
+msgid "Enter a complete HTTPS URL, or leave empty for official Tailscale."
+msgstr "请填写完整 HTTPS 地址；使用官方 Tailscale 时留空。"
+
+msgid "Enter the exit node IP or device name, not a subnet."
+msgstr "请填写出口节点的 Tailscale IP 或设备名称，不能填网段。"
+
+msgid "Update only firewall rules created by this plugin. A Tailscale zone created manually is preserved; manage it in Network > Firewall."
+msgstr "只更新本插件创建的防火墙规则。如果 tailscale 区域由你手动创建，插件会保留原规则；请到“网络 → 防火墙”管理。"
+
+msgid "Outbound traffic from this router"
+msgstr "本路由器发往 Tailscale 的出站策略"
+
+msgid "Policy for traffic sent by this router through Tailscale. Usually keep Accept."
+msgstr "控制本路由器通过 Tailscale 发出的流量，通常保持“接受”。"
+
+msgid "Forwarding within the Tailscale zone"
+msgstr "Tailscale 区域内转发策略"
+
+msgid "Policy for forwarding between interfaces in this zone. Keep Reject for office-to-home access; cross-zone forwarding is configured separately."
+msgstr "控制此区域内部接口间的转发。办公室访问家里时保持“拒绝”；跨区域转发由下面的选项单独控制。"
+
+msgid "Allow local LAN to access Tailscale"
+msgstr "允许本地 LAN 访问 Tailscale"
+
+msgid "Create only LAN to Tailscale forwarding. Needed for office computers accessing home through this router; replies to established connections remain allowed."
+msgstr "只创建 LAN → Tailscale 转发。办公室电脑通过本路由器访问家里时开启，已建立连接的响应仍可正常返回。"
+
+msgid "Allow Tailscale to initiate access to local LAN"
+msgstr "允许 Tailscale 主动访问本地 LAN"
+
+msgid "Allow new connections from Tailscale to this router's LAN. Disabled by default: no target zone is selected for Tailscale forwarding."
+msgstr "允许 Tailscale 向本路由器的 LAN 发起新连接。默认关闭，即 Tailscale 的转发目标区域为“未指定”。"
+
+msgid "NAT source subnet limits"
+msgstr "NAT 源地址限制（可选）"
+
+msgid "Leave empty for all source addresses. On the office router, enter 192.168.123.0/24 to NAT only office LAN traffic. This is a NAT match, not an access rule."
+msgstr "默认留空，不限制源地址。办公室路由器可填 192.168.123.0/24，仅对办公室内网流量做 NAT。这是 NAT 匹配条件，不能代替访问控制规则。"
+
+msgid "NAT destination subnet limits"
+msgstr "NAT 目标地址限制（可选）"
+
+msgid "Leave empty for all destinations. For office-to-home traffic, enter 192.168.199.0/24; for one Tailscale node, enter its 100.x.x.x address. This limits NAT, not which destinations are allowed."
+msgstr "默认留空，不限制目标地址。办公室访问家里可填 192.168.199.0/24；只针对某个 Tailscale 节点时填其 100.x.x.x 地址。这里限制 NAT 的适用范围，不能限制允许访问的目标。"
+
+msgid "Control connection"
+msgstr "控制服务连接"
+
+msgid "Connected"
+msgstr "已连接"
+
+msgid "Disconnected or starting"
+msgstr "未连接或正在启动"

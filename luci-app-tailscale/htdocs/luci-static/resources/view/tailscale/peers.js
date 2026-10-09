@@ -2,6 +2,7 @@
 'require view';
 'require rpc';
 'require poll';
+'require ui';
 
 var callGetStatus = rpc.declare({
 	object: 'tailscale',
@@ -100,7 +101,7 @@ return view.extend({
 				var pingBtn = E('button', {
 					'class': 'btn cbi-button',
 					'style': 'padding:2px 10px',
-					'click': L.bind(this.handlePing, this, ip, pingBtn)
+					'click': L.bind(this.handlePing, this, ip)
 				}, _('Ping'));
 
 				var statusEl = E('span', {
@@ -123,7 +124,8 @@ return view.extend({
 		}, this));
 	},
 
-	handlePing: function(ip, btn) {
+	handlePing: function(ip, ev) {
+		var btn = ev.currentTarget;
 		btn.disabled = true;
 		btn.textContent = '…';
 		return callPing(ip).then(function(res) {
@@ -131,6 +133,9 @@ return view.extend({
 			btn.textContent = out.length
 				? out[out.length - 1].replace(/^pong from \S+ \(([^)]*)\).*in ([\d.]+ms).*/, '$1 · $2')
 				: _('timeout');
+		}).catch(function(err) {
+			btn.textContent = _('Failed');
+			ui.addNotification(null, E('p', err.message || String(err)));
 		}).finally(function() {
 			btn.disabled = false;
 			setTimeout(function() { btn.textContent = _('Ping'); }, 4000);

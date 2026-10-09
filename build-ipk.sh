@@ -6,10 +6,11 @@ set -e
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 DIST="$ROOT/dist"
 TS_VER=1.102.2
-TS_REL=7
+TS_REL=10
 
-rm -rf "$DIST"
+# Keep previous release packages available for rollback.
 mkdir -p "$DIST"
+rm -rf "$DIST/stage-luci"
 
 # GNU tar 用 gnu，bsdtar（macOS）用 gnutar，两者都生成无 PAX 头的 tar
 if tar --format=gnutar -cf /dev/null /dev/null 2>/dev/null; then
@@ -97,7 +98,9 @@ mkdir -p "$LUCI_STAGE/usr/lib/lua/luci/i18n"
 cp "$ROOT/build/i18n/tailscale.zh-cn.lmo" "$LUCI_STAGE/usr/lib/lua/luci/i18n/"
 
 chmod 755 "$LUCI_STAGE/etc/init.d/tailscale" "$LUCI_STAGE/usr/libexec/rpcd/tailscale"
-find "$LUCI_STAGE" -type f ! -path '*/init.d/*' ! -path '*/rpcd/tailscale' -exec chmod 644 {} +
+chmod 755 "$LUCI_STAGE/usr/libexec/tailscale-route-watch"
+find "$LUCI_STAGE" -type f ! -path '*/init.d/*' ! -path '*/rpcd/tailscale' ! -path '*/tailscale-route-watch' -exec chmod 644 {} +
+chmod 600 "$LUCI_STAGE/etc/config/tailscale"
 find "$LUCI_STAGE" -type d -exec chmod 755 {} +
 
 # ---------- 单包合并版 ----------
@@ -105,6 +108,7 @@ for pair in "${ARCHES[@]}"; do
 	owrt_arch="${pair%%:*}"
 	go_arch="${pair##*:}"
 	pkg="$DIST/pkg-full-$owrt_arch"
+	rm -rf "$pkg"
 	mkdir -p "$pkg/data/usr/sbin" "$pkg/data/etc/tailscale" "$pkg/control"
 
 	# UPX 压缩后的二进制
@@ -123,7 +127,7 @@ Maintainer: wubin0532
 Section: net
 URL: https://github.com/wubin0532/tailscale
 Installed-Size: $size
-Depends: luci-base, rpcd, ca-bundle, kmod-tun
+Depends: luci-base, rpcd, ca-bundle, kmod-tun, jsonfilter, ip-full
 Conflicts: tailscale, luci-app-tailscale
 Description: Tailscale all-in-one package: combined binary (UPX compressed, Tailscale SSH enabled), procd service, UCI config and LuCI web interface with peers list, logs, exit node and automatic firewall setup.
 EOF

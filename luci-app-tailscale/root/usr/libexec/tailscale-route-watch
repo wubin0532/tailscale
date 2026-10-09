@@ -1,0 +1,30 @@
+#!/bin/sh
+. /usr/lib/tailscale-luci.sh
+
+last_config=$(md5sum /etc/config/tailscale 2>/dev/null)
+ts_apply
+last_state=$(ts_backend_state)
+while sleep 5; do
+	current_config=$(md5sum /etc/config/tailscale 2>/dev/null)
+	if [ "$current_config" != "$last_config" ]; then
+		last_config=$current_config
+		ts_apply
+	fi
+	state=$(ts_backend_state)
+	if [ "$state" = Running ] && [ "$last_state" != Running ]; then
+		# Control/DNS recovery may happen well after initial startup timed out.
+		ts_apply
+	fi
+	last_state=$state
+	[ "$state" = Running ] || continue
+	# Watch the actual preference, so a later approved route is also checked.
+	accept=$("$TS_CLI" debug prefs 2>/dev/null | jsonfilter -e '@.RouteAll')
+	[ "$accept" = true ] || continue
+	mkdir "$TS_RUN_DIR/luci-lock" 2>/dev/null || continue
+	trap 'rmdir "$TS_RUN_DIR/luci-lock" 2>/dev/null; exit' HUP INT TERM
+	if ! ts_check_conflicts; then
+		ts_run "$TS_CLI" set --accept-routes=false
+	fi
+	rmdir "$TS_RUN_DIR/luci-lock" 2>/dev/null
+	trap - HUP INT TERM
+done

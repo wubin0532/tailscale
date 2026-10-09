@@ -10,10 +10,11 @@ get_status() {
 	local running=0 state="" authurl="" nodekey="" hostname="" dnsname="" userid="" loginname="" ips=""
 	pidof tailscaled >/dev/null 2>&1 && running=1
 
-	local raw
+	local raw prefs apply_error actual_routes accept=0 busy=0 online=0
 	raw=$($CLI status --json 2>/dev/null)
 	if [ -n "$raw" ]; then
 		state=$(jsonfilter -s "$raw" -e '@.BackendState' 2>/dev/null)
+		[ "$(jsonfilter -s "$raw" -e '@.Self.Online' 2>/dev/null)" != true ] || online=1
 		authurl=$(jsonfilter -s "$raw" -e '@.AuthURL' 2>/dev/null)
 		nodekey=$(jsonfilter -s "$raw" -e '@.Self.PublicKey' 2>/dev/null)
 		hostname=$(jsonfilter -s "$raw" -e '@.Self.HostName' 2>/dev/null)
@@ -23,7 +24,17 @@ get_status() {
 		ips=$(jsonfilter -s "$raw" -e '@.Self.TailscaleIPs[*]' 2>/dev/null | tr '\n' ' ')
 	fi
 
+	prefs=$($CLI debug prefs 2>/dev/null)
+	actual_routes=$(printf '%s' "$prefs" | jsonfilter -e '@.AdvertiseRoutes[*]' 2>/dev/null | tr '\n' ' ')
+	[ "$(printf '%s' "$prefs" | jsonfilter -e '@.RouteAll' 2>/dev/null)" != true ] || accept=1
+	[ ! -d "$TS_RUN_DIR/luci-lock" ] || busy=1
+	apply_error=$(cat "$TS_RUN_DIR/firewall-error" "$TS_RUN_DIR/luci-error" 2>/dev/null)
 	json_init
+	json_add_string apply_error "$apply_error"
+	json_add_string actual_routes "${actual_routes% }"
+	json_add_boolean accept_routes "$accept"
+	json_add_boolean busy "$busy"
+	json_add_boolean online "$online"
 	json_add_boolean running "$running"
 	json_add_string backend_state "$state"
 	json_add_string auth_url "$authurl"
@@ -57,7 +68,7 @@ do_ping() {
 	read -r input
 	host=$(jsonfilter -s "$input" -e '@.host' 2>/dev/null)
 	case "$host" in
-		''|*[!0-9a-zA-Z.:-]*)
+		''|-*|*[!0-9a-zA-Z.:-]*)
 			json_init
 			json_add_string output "invalid host"
 			json_dump
@@ -71,17 +82,28 @@ do_ping() {
 }
 
 do_login() {
-	ts_login
+	local result=0
+	ts_login || result=$?
 	json_init
-	json_add_boolean success 1
+	if [ "$result" -eq 0 ]; then json_add_boolean success 1; else json_add_boolean success 0; fi
+	json_add_string output "$(cat "$TS_RUN_DIR/luci-error" 2>/dev/null)"
 	json_dump
 }
 
 do_uninstall() {
 	# logout, stop service (stop_service runs fw_cleanup), wipe state & config
+	if [ -d "$TS_RUN_DIR/luci-lock" ]; then
+		json_init; json_add_boolean success 0
+		json_add_string output "Another Tailscale operation is still running."; json_dump
+		return
+	fi
+	local out result
 	$CLI logout >/dev/null 2>&1
-	/etc/init.d/tailscale stop >/dev/null 2>&1
-	/etc/init.d/tailscale disable >/dev/null 2>&1
+	out=$(/etc/init.d/tailscale stop 2>&1 && /etc/init.d/tailscale disable 2>&1); result=$?
+	if [ "$result" -ne 0 ]; then
+		json_init; json_add_boolean success 0; json_add_string output "$out"; json_dump
+		return
+	fi
 	rm -rf /etc/tailscale /var/run/tailscale
 	rm -f /etc/config/tailscale
 	json_init
@@ -90,17 +112,56 @@ do_uninstall() {
 }
 
 do_logout() {
-	local out
-	out=$($CLI logout 2>&1)
+	local out result
+	if [ -d "$TS_RUN_DIR/luci-lock" ]; then
+		json_init; json_add_boolean success 0
+		json_add_string output "Another Tailscale operation is still running."; json_dump
+		return
+	fi
+	out=$($CLI logout 2>&1); result=$?
+	if [ "$result" -eq 0 ]; then
+		# A saved reusable key must not undo an explicit logout at next boot.
+		uci -q delete tailscale.settings.auth_key
+		uci commit tailscale
+		ts_clear_error
+	fi
 	json_init
-	json_add_boolean success "$?"
+	if [ "$result" -eq 0 ]; then json_add_boolean success 1; else json_add_boolean success 0; fi
+	json_add_string output "$out"
+	json_dump
+}
+
+do_set_enabled() {
+	local input enabled old result=0 out
+	read -r input
+	enabled=$(jsonfilter -s "$input" -e '@.enabled')
+	case "$enabled" in 0|1) :;; *)
+		json_init; json_add_boolean success 0; json_add_string output "Invalid enabled value"; json_dump; return;;
+	esac
+	old=$(uci -q get tailscale.settings.enabled)
+	uci set "tailscale.settings.enabled=$enabled" && uci commit tailscale || result=$?
+	if [ "$result" -eq 0 ]; then
+		if [ "$enabled" = 1 ]; then
+			out=$(/etc/init.d/tailscale enable 2>&1 && /etc/init.d/tailscale start 2>&1); result=$?
+		else
+			out=$(/etc/init.d/tailscale stop 2>&1 && /etc/init.d/tailscale disable 2>&1); result=$?
+		fi
+	fi
+	if [ "$result" -ne 0 ]; then
+		uci set "tailscale.settings.enabled=${old:-0}"; uci commit tailscale
+		if [ "$old" = 1 ]; then /etc/init.d/tailscale enable; else /etc/init.d/tailscale disable; fi
+	fi
+	[ "$result" -ne 0 ] || out=""
+	if [ "$result" -ne 0 ] && [ -z "$out" ]; then out="Service action failed (exit $result)."; fi
+	json_init
+	if [ "$result" -eq 0 ]; then json_add_boolean success 1; else json_add_boolean success 0; fi
 	json_add_string output "$out"
 	json_dump
 }
 
 case "$1" in
 	list)
-		printf '%s\n' '{"get_status":{},"get_log":{},"get_netcheck":{},"ping":{"host":"string"},"login":{},"logout":{},"uninstall":{}}'
+		printf '%s\n' '{"get_status":{},"get_log":{},"get_netcheck":{},"ping":{"host":"string"},"login":{},"logout":{},"uninstall":{},"set_enabled":{"enabled":"string"}}'
 		;;
 	call)
 		case "$2" in
@@ -111,6 +172,7 @@ case "$1" in
 			login) do_login ;;
 			logout) do_logout ;;
 			uninstall) do_uninstall ;;
+			set_enabled) do_set_enabled ;;
 		esac
 		;;
 esac

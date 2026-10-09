@@ -35,11 +35,11 @@ var callNetcheck = rpc.declare({
 	expect: { }
 });
 
-var callInitAction = rpc.declare({
-	object: 'luci',
-	method: 'setInitAction',
-	params: [ 'name', 'action' ],
-	expect: { result: false }
+var callSetEnabled = rpc.declare({
+	object: 'tailscale',
+	method: 'set_enabled',
+	params: [ 'enabled' ],
+	expect: { }
 });
 
 return view.extend({
@@ -65,10 +65,13 @@ return view.extend({
 		var table = E('table', { 'class': 'table' });
 		var rows = [
 			[ _('Enable service'), checkbox ],
-			[ _('Service Status'), E('span', { 'id': 'ts_running' }, '—') ],
-			[ _('Current Node'), E('span', { 'id': 'ts_node' }, '—') ],
+			[ _('Daemon process'), E('span', { 'id': 'ts_running' }, '—') ],
+			[ _('Control connection'), E('span', { 'id': 'ts_online' }, '—') ],
+			[ _('Current Tailscale node'), E('span', { 'id': 'ts_node' }, '—') ],
 			[ 'Tailscale IP', E('span', { 'id': 'ts_ips' }, '—') ],
-			[ _('Advertised Routes'), E('span', { 'id': 'ts_routes' }, '—') ],
+			[ _('Configured local subnets'), E('span', { 'id': 'ts_routes' }, '—') ],
+			[ _('Applied local subnets'), E('span', { 'id': 'ts_actual_routes' }, '—') ],
+			[ _('Remote subnet access in use'), E('span', { 'id': 'ts_accept_routes' }, '—') ],
 			[ _('Bound User'), E('span', { 'id': 'ts_user' }, '—') ]
 		];
 
@@ -82,10 +85,11 @@ return view.extend({
 		var v = E('div', {}, [
 			E('h2', {}, _('Tailscale')),
 			E('div', { 'class': 'cbi-section-descr' }, [
-				_('Tailscale connects your devices for easy access to remote resources. See '),
+				_('The daemon process and configured subnets below do not confirm that routes are applied or approved. Check the current device name, login state and Tailscale admin console. See '),
 				E('a', { 'href': 'https://tailscale.com', 'target': '_blank' }, 'tailscale.com')
 			]),
 			E('div', { 'id': 'ts_alert_box' }),
+			E('div', { 'id': 'ts_apply_error', 'class': 'alert-message warning', 'style': 'display:none;white-space:pre-wrap' }),
 			E('div', { 'class': 'cbi-section' }, [
 				E('h3', {}, _('Service Status')),
 				table
@@ -135,12 +139,28 @@ return view.extend({
 		return callGetStatus().then(L.bind(function(res) {
 			res = res || {};
 			var running = !!res.running;
+			var errorBox = document.getElementById('ts_apply_error');
+			if (errorBox) {
+				errorBox.textContent = res.apply_error
+					? _('Settings were not fully applied: %s').format(res.apply_error)
+					: (res.busy ? _('Applying settings or waiting for login...') : '');
+				errorBox.style.display = errorBox.textContent ? '' : 'none';
+			}
+			if (res.backend_state === 'Running') {
+				this.loginRequested = false;
+				if (this.loginModalShown) ui.hideModal();
+				this.loginModalShown = false;
+			}
 
 			var el = document.getElementById('ts_running');
 			if (!el) return;
 			el.textContent = running ? 'Running' : _('Stopped');
 			el.style.color = running ? 'green' : '#c62828';
 			el.style.fontWeight = 'bold';
+
+			var online = document.getElementById('ts_online');
+			online.textContent = res.online ? _('Connected') : _('Disconnected or starting');
+			online.style.color = res.online ? 'green' : '#c62828';
 
 			var node = document.getElementById('ts_node');
 			if (res.hostname && res.node_key && res.node_key.indexOf('nodekey:000') !== 0) {
@@ -155,6 +175,8 @@ return view.extend({
 			var routes = uci.get('tailscale', 'settings', 'advertise_routes');
 			routes = Array.isArray(routes) ? routes.filter(Boolean) : (routes ? [routes] : []);
 			document.getElementById('ts_routes').textContent = routes.join(', ') || '—';
+			document.getElementById('ts_actual_routes').textContent = res.actual_routes || '—';
+			document.getElementById('ts_accept_routes').textContent = res.accept_routes ? _('Enabled') : _('Disabled');
 
 			var user = document.getElementById('ts_user');
 			user.textContent = '';
@@ -213,7 +235,15 @@ return view.extend({
 		this.loginRequested = true;
 		ev.target.disabled = true;
 		ev.target.textContent = _('Requesting login URL...');
-		return callLogin();
+		return callLogin().then(function(res) {
+			if (!res || !res.success) throw new Error((res && res.output) || _('Failed'));
+		}).catch(L.bind(function(err) {
+			this.loginRequested = false;
+			ui.addNotification(null, E('p', err.message || String(err)));
+		}, this)).finally(function() {
+			ev.target.disabled = false;
+			ev.target.textContent = _('Login');
+		});
 	},
 
 	showLoginModal: function(url) {
@@ -232,7 +262,11 @@ return view.extend({
 				E('a', { 'class': 'btn cbi-button cbi-button-apply', 'href': url, 'target': '_blank' },
 					_('Open login page')),
 				' ',
-				E('button', { 'class': 'btn cbi-button', 'click': ui.hideModal }, _('Close'))
+				E('button', { 'class': 'btn cbi-button', 'click': L.bind(function() {
+					this.loginModalShown = false;
+					this.loginRequested = false;
+					ui.hideModal();
+				}, this) }, _('Close'))
 			])
 		]);
 
@@ -269,18 +303,18 @@ return view.extend({
 
 	handleEnable: function(ev) {
 		var val = ev.target.checked ? '1' : '0';
+		ev.target.disabled = true;
 		ui.showModal(null, E('p', { 'class': 'spinning' }, _('Applying changes...')));
-		uci.set('tailscale', 'settings', 'enabled', val);
-		return uci.save().then(function() {
-			return callInitAction('tailscale', val == '1' ? 'enable' : 'disable');
-		}).then(function() {
-			return callInitAction('tailscale', val == '1' ? 'start' : 'stop');
-		}).then(function() {
+		return callSetEnabled(val).then(function(res) {
+			if (!res || !res.success) throw new Error((res && res.output) || _('Failed'));
 			ui.hideModal();
 			window.location.reload();
 		}).catch(function(e) {
+			ev.target.checked = val !== '1';
 			ui.hideModal();
 			ui.addNotification(null, E('p', _('Failed to apply: %s').format(e.message || e)));
+		}).finally(function() {
+			ev.target.disabled = false;
 		});
 	},
 
@@ -294,7 +328,10 @@ return view.extend({
 					'class': 'btn cbi-button cbi-button-negative',
 					'click': L.bind(function() {
 						ui.hideModal();
-						return callLogout().then(function() { window.location.reload(); });
+						return callLogout().then(function(res) {
+							if (!res || !res.success) throw new Error((res && res.output) || _('Failed'));
+							window.location.reload();
+						}).catch(function(err) { ui.addNotification(null, E('p', err.message || String(err))); });
 					}, this)
 				}, _('Logout & Unbind'))
 			])
@@ -312,9 +349,13 @@ return view.extend({
 					'click': L.bind(function() {
 						ui.hideModal();
 						ui.showModal(null, E('p', { 'class': 'spinning' }, _('Uninstalling...')));
-						return callUninstall().then(function() {
+						return callUninstall().then(function(res) {
+							if (!res || !res.success) throw new Error((res && res.output) || _('Failed'));
 							ui.hideModal();
 							window.location.href = L.url('admin/status/overview');
+						}).catch(function(err) {
+							ui.hideModal();
+							ui.addNotification(null, E('p', err.message || String(err)));
 						});
 					}, this)
 				}, _('Uninstall'))

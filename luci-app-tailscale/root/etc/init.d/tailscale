@@ -21,6 +21,7 @@ fw_find_tailscale_zone() {
 	local i=0
 	while uci -q get "firewall.@zone[$i]" >/dev/null 2>&1; do
 		if [ "$(uci -q get "firewall.@zone[$i].name")" = "tailscale" ]; then
+			ts_zone_index=$i
 			return 0
 		fi
 		i=$((i + 1))
@@ -64,49 +65,58 @@ fw_cleanup() {
 		fi
 	done
 
-	if [ "$changed" -eq 1 ]; then
-		uci commit firewall
-		/etc/init.d/firewall reload >/dev/null 2>&1
+	if [ "$changed" -eq 1 ] && [ "$1" != "rebuild" ]; then
+		uci commit firewall || return $?
+		/etc/init.d/firewall reload >/dev/null 2>&1 || return $?
 		logger -t tailscale "auto firewall rules removed"
 	fi
 }
 
-# Idempotent: skips if a zone named 'tailscale' already exists (user-managed),
-# otherwise creates zone + forwardings and marks them with ts_auto=1.
-fw_setup() {
-	local enabled input lan_forward masq
+# Rebuild our own rules in one commit/reload; preserve user-managed zones.
+fw_setup_inner() {
+	local enabled input output forward lan_forward tailscale_to_lan masq
 	config_get_bool enabled auto enabled 0
 	if [ "$enabled" -ne 1 ]; then
 		fw_cleanup
 		return 0
 	fi
-	config_get input auto input ACCEPT
+	config_get input auto input REJECT
+	config_get output auto output ACCEPT
+	config_get forward auto forward REJECT
 	config_get_bool lan_forward auto lan_forward 1
+	config_get_bool tailscale_to_lan auto tailscale_to_lan 0
 	config_get_bool masq auto masq 1
 	ports=""
 	config_list_foreach auto ports append_port
 
 	if fw_find_tailscale_zone; then
-		logger -t tailscale "firewall zone 'tailscale' already exists, skip auto setup"
-		return 0
+		if [ "$(uci -q get "firewall.@zone[$ts_zone_index].ts_auto")" != "1" ]; then
+			logger -t tailscale "user-managed firewall zone 'tailscale' exists; automatic settings were not applied"
+			return 0
+		fi
 	fi
+	fw_cleanup rebuild
 
 	local z f p r
 	z=$(uci add firewall zone)
 	uci set "firewall.$z.name=tailscale"
 	uci set "firewall.$z.input=$input"
-	uci set "firewall.$z.output=ACCEPT"
-	uci set "firewall.$z.forward=ACCEPT"
+	uci set "firewall.$z.output=$output"
+	uci set "firewall.$z.forward=$forward"
 	uci add_list "firewall.$z.device=tailscale0"
 	[ "$masq" -eq 1 ] && uci set "firewall.$z.masq=1"
 	uci set "firewall.$z.mtu_fix=1"
 	uci set "firewall.$z.ts_auto=1"
+	config_list_foreach auto masq_src fw_add_masq_src
+	config_list_foreach auto masq_dest fw_add_masq_dest
 
 	if [ "$lan_forward" -eq 1 ]; then
 		f=$(uci add firewall forwarding)
 		uci set "firewall.$f.src=lan"
 		uci set "firewall.$f.dest=tailscale"
 		uci set "firewall.$f.ts_auto=1"
+	fi
+	if [ "$tailscale_to_lan" -eq 1 ]; then
 		f=$(uci add firewall forwarding)
 		uci set "firewall.$f.src=tailscale"
 		uci set "firewall.$f.dest=lan"
@@ -129,8 +139,43 @@ fw_setup() {
 	logger -t tailscale "auto firewall rules installed"
 }
 
+fw_setup() {
+	local dir=${TS_RUN_DIR:-/var/run/tailscale} snapshot result
+	mkdir -p "$dir"
+	snapshot="$dir/firewall-snapshot.$$"
+	(umask 077; uci export firewall > "$snapshot") || {
+		printf '%s\n' 'Cannot back up firewall configuration; automatic changes were skipped.' > "$dir/firewall-error"
+		return 1
+	}
+	# Abort on any failed UCI/reload command rather than report false success.
+	(set -e; fw_setup_inner) 2> "$dir/firewall-command-error"
+	result=$?
+	if [ "$result" -ne 0 ]; then
+		printf '%s\n' 'Automatic firewall update failed; restoring the previous rules.' > "$dir/firewall-error"
+		if uci import firewall < "$snapshot" && uci commit firewall && /etc/init.d/firewall reload >/dev/null 2>&1; then
+			logger -t tailscale "automatic firewall update failed; previous rules restored"
+		else
+			printf '%s\n' 'Firewall rollback failed; inspect Network > Firewall.' >> "$dir/firewall-error"
+			logger -t tailscale "automatic firewall rollback failed"
+		fi
+	else
+		rm -f "$dir/firewall-error"
+	fi
+	rm -f "$snapshot" "$dir/firewall-command-error"
+	return "$result"
+}
+
+fw_add_masq_src() {
+	[ -z "$1" ] || uci add_list "firewall.$z.masq_src=$1"
+}
+
+fw_add_masq_dest() {
+	[ -z "$1" ] || uci add_list "firewall.$z.masq_dest=$1"
+}
+
 start_service() {
 	local enabled port state_file
+	ts_migrate_config
 	config_load $CONF
 	config_get_bool enabled settings enabled 0
 	[ "$enabled" -eq 1 ] || return 0
@@ -152,10 +197,14 @@ start_service() {
 
 	fw_setup
 
-	# Apply prefs only when already logged in or an auth key is set.
-	# Never trigger interactive login at boot; login is initiated from the UI.
-	# Fully detached so this script (and the boot process) never blocks.
-	( ts_apply </dev/null >/dev/null 2>&1 & )
+	# Supervise preference application and ongoing local-route protection.
+	procd_open_instance route_guard
+	procd_set_param command /usr/libexec/tailscale-route-watch
+	procd_set_param file /etc/config/tailscale
+	procd_set_param respawn 3600 5 5
+	procd_set_param stdout 1
+	procd_set_param stderr 1
+	procd_close_instance
 }
 
 stop_service() {

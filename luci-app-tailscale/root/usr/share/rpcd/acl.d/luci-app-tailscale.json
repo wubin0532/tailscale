@@ -9,8 +9,7 @@
 		},
 		"write": {
 			"ubus": {
-				"tailscale": [ "login", "logout", "uninstall" ],
-				"luci": [ "setInitAction" ]
+				"tailscale": [ "login", "logout", "uninstall", "set_enabled" ]
 			},
 			"uci": [ "tailscale" ]
 		}
