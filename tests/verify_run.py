@@ -46,6 +46,12 @@ def check(path,execute=False):
   assert metadata['core']==ENV['CORE_VERSION']
   assert metadata['core_commit']==ENV['CORE_SOURCE_COMMIT']
   assert metadata['build_tags']==['ts_include_cli']
+  # The displayed badge and status RPC must identify this payload's plugin,
+  # not an older release left behind in the shared UI module.
+  ui=archive.extractfile('data/www/luci-static/resources/tailscale/ui.js').read().decode()
+  assert re.search(r"'class': 'ts-version' }, '([^']+)'",ui).group(1)==metadata['plugin']
+  rpc=archive.extractfile('data/usr/libexec/rpcd/tailscale').read().decode()
+  assert 'json_add_string plugin_version "'+metadata['plugin']+'"' in rpc
   registration=archive.extractfile('data/usr/share/tailscale-luci/registration.ipk').read()
   with tarfile.open(fileobj=io.BytesIO(registration)) as management:
    with tarfile.open(fileobj=io.BytesIO(management.extractfile('./control.tar.gz').read())) as control:

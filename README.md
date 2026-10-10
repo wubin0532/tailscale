@@ -36,7 +36,7 @@ The firmware must already provide **LuCI, rpcd, procd, UCI, fw4, BusyBox and TUN
 
 ### Install and upgrade
 
-Download the matching `.run` and `SHA256SUMS-v2.2.0-run.txt` from [Releases](https://github.com/wubin0532/tailscale/releases/tag/v2.0). Run as root on the router:
+Download the matching `.run` and `SHA256SUMS-v2.2.0-run.txt` from [Releases](https://github.com/wubin0532/tailscale/releases/tag/v2.2.0). Run as root on the router:
 
 ```sh
 uname -m
@@ -101,7 +101,7 @@ sudo python3 tests/verify_native_registration.py
 
 English is the source language; Chinese translations are in [`tailscale.po`](luci-app-tailscale/po/zh_Hans/tailscale.po), compiled into LuCI's standard `tailscale.zh-cn.lmo`. Coverage checks include menus, views, status states, fixed backend messages and formatting placeholders. The CI also reads compiled translations using upstream LuCI's LMO implementation.
 
-Building downloads pinned source, Go modules and dependencies; **installation is offline**. Dependency `--resolve` is only for maintaining the lock file. GitHub Actions builds from `main` or manual dispatch; it does not publish releases automatically. The existing `v2.0` tag remains unchanged, and no new branches/tags are created. Each package's `build.json` records its actual build commit. Earlier validation: [v2.0](docs/validation-v2.0.md), [`.run` candidate](docs/validation-run-v2.0.md).
+Building downloads pinned source, Go modules and dependencies; **installation is offline**. Dependency `--resolve` is only for maintaining the lock file. GitHub Actions builds from `main` or manual dispatch; it does not publish releases automatically. Development and release fixes are committed directly to `main`; no development branches are kept. Release `v2.2.0` uses the matching `v2.2.0` tag, the UI badge shows `v2.2.0`, and installer revision `r2` is recorded as `2.2.0-r2`. Each package's `build.json` records its actual build commit. Earlier validation: [v2.0](docs/validation-v2.0.md), [`.run` candidate](docs/validation-run-v2.0.md).
 
 ## 简体中文
 
@@ -124,7 +124,7 @@ OpenWrt/LibWrt 的 Tailscale 管理插件，插件界面版本 **v2.2.0**，离�
 
 ### 离线安装与升级
 
-下载 [Releases](https://github.com/wubin0532/tailscale/releases/tag/v2.0) 中与 CPU 对应的 `.run` 及 `SHA256SUMS-v2.2.0-run.txt`。本次由用户自行在 Home x86-64 真机测试；构建验证通过后直接更新 Release，尚未标为真机通过。
+下载 [Releases](https://github.com/wubin0532/tailscale/releases/tag/v2.2.0) 中与 CPU 对应的 `.run` 及 `SHA256SUMS-v2.2.0-run.txt`。本次由用户自行在 Home x86-64 真机测试；构建验证通过后直接更新 Release，尚未标为真机通过。
 
 ```sh
 uname -m
@@ -195,6 +195,6 @@ python3 tests/verify_run.py --execute
 
 构建需要网络下载固定源码、Go 模块和固定依赖；**安装时不需要网络或包管理器安装依赖**。依赖解析的 `--resolve` 仅用于维护锁文件，普通构建不会解析最新包。
 
-GitHub Actions 只从 main 或手工触发构建 `.run` 和校验清单，不自动公开 Release。新产物记录真实构建提交，已有 v2.0 标签保持不动，不新建开发分支或其它标签。验证记录见 [旧版 v2.0 包验证](docs/validation-v2.0.md) 和 [`.run` 候选验证](docs/validation-run-v2.0.md)。
+GitHub Actions 只从 main 或手工触发构建 `.run` 和校验清单，不自动公开 Release。开发和发布修复直接提交到 main，不保留开发分支。Release v2.2.0 使用对应的 v2.2.0 标签，页面右上角显示 v2.2.0，安装包修订号为 2.2.0-r2；新产物记录真实构建提交。验证记录见 [旧版 v2.0 包验证](docs/validation-v2.0.md) 和 [`.run` 候选验证](docs/validation-run-v2.0.md)。
 
 英文作为界面源语言，中文译文位于 [`tailscale.po`](luci-app-tailscale/po/zh_Hans/tailscale.po)，构建为标准 LuCI `tailscale.zh-cn.lmo`。覆盖检查包括菜单、四页文案、运行状态、固定后端提示和格式参数；CI 同时使用上游 LuCI 的 LMO 实现验证编译后译文。

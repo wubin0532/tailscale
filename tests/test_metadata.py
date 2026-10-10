@@ -24,6 +24,20 @@ class MetadataTests(unittest.TestCase):
   self.assertTrue((resources/'tailscale/ui-v2-2-0-r2.js').is_file())
   self.assertTrue((resources/'tailscale/ui-v2-2-0-r2.css').is_file())
   self.assertIn('tailscale/ui-v2-2-0-r2.css',(resources/'tailscale/ui-v2-2-0-r2.js').read_text())
+ def test_plugin_versions_match_ui_rpc_and_release_links(self):
+  env=dict(line.split('=',1) for line in (ROOT/'core-version.env').read_text().splitlines() if '=' in line)
+  version='v'+env['APP_VERSION']
+  resources=ROOT/'luci-app-tailscale/htdocs/luci-static/resources'
+  ui=(resources/'tailscale/ui.js').read_text()
+  import re
+  self.assertEqual(re.search(r"'class': 'ts-version' }, '([^']+)'",ui).group(1),version)
+  rpc=(ROOT/'luci-app-tailscale/root/usr/libexec/rpcd/tailscale').read_text()
+  self.assertIn('json_add_string plugin_version "'+version+'"',rpc)
+  readme=(ROOT/'README.md').read_text()
+  tags=re.findall(r'releases/tag/(v[\d.]+)',readme)
+  self.assertTrue(tags)
+  self.assertEqual(set(tags),{version})
+  self.assertIn(env['APP_VERSION']+'-r'+env['APP_RELEASE'],readme)
  def test_shell_syntax(self):
   import subprocess
   for p in ['etc/init.d/tailscale','usr/lib/tailscale-luci.sh','usr/libexec/rpcd/tailscale','usr/libexec/tailscale-route-watch']:
